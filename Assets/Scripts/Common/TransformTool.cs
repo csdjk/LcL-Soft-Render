@@ -8,7 +8,14 @@ namespace LcLSoftRender
     /// </summary>
     public class TransformTool
     {
-        public static Vector2Int ModelPositionToScreenPosition(Vector3 modelPos, Matrix4x4 matrixMVP, Vector2Int screenSize)
+        /// <summary>
+        /// 将模型空间中的顶点坐标转换为裁剪空间中的坐标
+        /// </summary>
+        /// <param name="modelPos"></param>
+        /// <param name="matrixMVP"></param>
+        /// <param name="screenSize"></param>
+        /// <returns></returns>
+        public static Vector3 ModelPositionToScreenPosition(Vector3 modelPos, Matrix4x4 matrixMVP, Vector2Int screenSize)
         {
             // 将模型空间中的顶点坐标转换为裁剪空间中的坐标
             Vector4 clipPos = matrixMVP * new Vector4(modelPos.x, modelPos.y, modelPos.z, 1);
@@ -21,9 +28,10 @@ namespace LcLSoftRender
             );
 
             // 将屏幕空间中的坐标转换为像素坐标
-            return new Vector2Int(
+            return new Vector3(
                 Mathf.RoundToInt(screenPos.x),
-                Mathf.RoundToInt(screenPos.y)
+                Mathf.RoundToInt(screenPos.y),
+                ndcPos.z
             );
         }
         /// <summary>
@@ -136,5 +144,42 @@ namespace LcLSoftRender
         //     return perspectiveMatrix;
         // }
 
+        public static Vector3 ScreenPositionToBarycentric(Vector2 point, Vector3 v0, Vector3 v1, Vector3 v2)
+        {
+            v0.z = 0;
+            v1.z = 0;
+            v2.z = 0;
+            // 计算三角形的面积
+            float area = Vector3.Cross(v1 - v0, v2 - v0).magnitude;
+
+            // 计算像素点到三角形三个顶点的距离
+            float d0 = Vector2.Distance(point, new Vector2(v0.x, v0.y));
+            float d1 = Vector2.Distance(point, new Vector2(v1.x, v1.y));
+            float d2 = Vector2.Distance(point, new Vector2(v2.x, v2.y));
+
+            // 将 screenPos 向量转换为 Vector3 类型的向量
+            Vector3 screenPos3 = new Vector3(point.x, point.y, 0);
+
+            // 计算像素点的重心坐标
+            float w0 = Vector3.Cross(v1 - v2, screenPos3 - v2).magnitude / area;
+            float w1 = Vector3.Cross(v2 - v0, screenPos3 - v0).magnitude / area;
+            float w2 = Vector3.Cross(v0 - v1, screenPos3 - v1).magnitude / area;
+
+            return new Vector3(w0, w1, w2);
+        }
+
+        public static Vector3 ScreenPositionToBarycentric(Vector3 point, Vector3 A, Vector3 B, Vector3 C)
+        {
+            var weightA =
+                    ((A.y - B.y) * point.x + (B.x - A.x) * point.y + A.x * B.y - B.x * A.y)
+                    / ((A.y - B.y) * C.x + (B.x - A.x) * C.y + A.x * B.y - B.x * A.y);
+
+            var weightB =
+                    ((A.y - C.y) * point.x + (C.x - A.x) * point.y + A.x * C.y - C.x * A.y)
+                    / ((A.y - C.y) * B.x + (C.x - A.x) * B.y + A.x * C.y - C.x * A.y);
+
+            var weightC = 1 - weightA - weightB;
+            return new Vector3(weightA, weightB, weightC);
+        }
     }
 }

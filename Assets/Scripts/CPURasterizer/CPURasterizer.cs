@@ -158,12 +158,12 @@ namespace LcLSoftRender
         /// </summary>
         /// <param name="v0"></param>
         /// <param name="v1"></param>
-        private void DrawLine(Vector2Int v0, Vector2Int v1, Color color)
+        private void DrawLine(Vector3 v0, Vector3 v1, Color color)
         {
-            int x0 = v0.x;
-            int y0 = v0.y;
-            int x1 = v1.x;
-            int y1 = v1.y;
+            int x0 = (int)v0.x;
+            int y0 = (int)v0.y;
+            int x1 = (int)v1.x;
+            int y1 = (int)v1.y;
 
             int dx = Mathf.Abs(x1 - x0);
             int dy = Mathf.Abs(y1 - y0);
@@ -218,32 +218,49 @@ namespace LcLSoftRender
                 Vertex v1 = vertexBuffer[indexBuffer[i + 1]];
                 Vertex v2 = vertexBuffer[indexBuffer[i + 2]];
 
-                RasterTriangle(v0, v1, v2);
+                RasterizeTriangle(v0, v1, v2);
             }
         }
-
-        public void RasterizeTriangle(Vector2Int v0, Vector2Int v1, Vector2Int v2, Graphics g)
+        /// <summary>
+        /// 三角形光栅化(重心坐标法)
+        /// </summary>
+        /// <param name="v0"></param>
+        /// <param name="v1"></param>
+        /// <param name="v2"></param>
+        private void RasterizeTriangle(Vertex v0, Vertex v1, Vertex v2)
         {
-            // 计算三角形的包围矩形
-            float xmin = Mathf.Min(Mathf.Min(v0.x, v1.x), v2.x);
-            float ymin = Mathf.Min(Mathf.Min(v0.y, v1.y), v2.y);
-            float xmax = Mathf.Max(Mathf.Max(v0.x, v1.x), v2.x);
-            float ymax = Mathf.Max(Mathf.Max(v0.y, v1.y), v2.y);
+            var screenPos0 = TransformTool.ModelPositionToScreenPosition(v0.position, m_MatrixMVP, m_ScreenSize);
+            var screenPos1 = TransformTool.ModelPositionToScreenPosition(v1.position, m_MatrixMVP, m_ScreenSize);
+            var screenPos2 = TransformTool.ModelPositionToScreenPosition(v2.position, m_MatrixMVP, m_ScreenSize);
 
-            // // 遍历包围矩形内的每个像素，判断像素是否在三角形内部
-            for (float y = ymin; y <= ymax; y++)
+            // 计算三角形的边界框
+            int minX = (int)Mathf.Min(screenPos0.x, Mathf.Min(screenPos1.x, screenPos2.x));
+            int minY = (int)Mathf.Min(screenPos0.y, Mathf.Min(screenPos1.y, screenPos2.y));
+            int maxX = (int)Mathf.Max(screenPos0.x, Mathf.Max(screenPos1.x, screenPos2.x));
+            int maxY = (int)Mathf.Max(screenPos0.y, Mathf.Max(screenPos1.y, screenPos2.y));
+
+            // 遍历边界框内的每个像素
+            for (int y = minY; y <= maxY; y++)
             {
-                for (float x = xmin; x <= xmax; x++)
+                for (int x = minX; x <= maxX; x++)
                 {
-                    //         Vector2Int p = new Vector2Int(x, y);
-                    //         float alpha = GetTriangleArea(v1, v2, p) / GetTriangleArea(v0, v1, 2);
-                    //         float beta = TriangleArea(v0, v2, p) / GetTriangleArea(v0, v1 v2);
-                    //         float gamma = GetTriangleArea(v0, v1, p) / GetTriangle(v0, v1, v2);
-                    //         if (alpha >= 0 beta >= 0 && gamma >= 0)
-                    //         {
-                    //             像素在三角形内部，填充颜色
-                    //             g.FillRectanglebrush, x, y,1, 1);
-                    //         }
+                    // 计算像素的重心坐标
+                    Vector3 barycentric = TransformTool.ScreenPositionToBarycentric(new Vector3(x, y, 0), screenPos0, screenPos1, screenPos2);
+
+                    // 如果像素在三角形内，则绘制该像素
+                    if (barycentric.x >= 0 && barycentric.y >= 0 && barycentric.z >= 0)
+                    {
+                        // 计算像素的深度值
+                        float depth = barycentric.x * screenPos0.z + barycentric.y * screenPos1.z + barycentric.z * screenPos2.z;
+                        m_FrameBuffer.SetColor(x, y, Color.red);
+
+                        // 如果像素的深度值小于深度缓冲区中的值，则更新深度缓冲区并绘制该像素
+                        // if (depth < m_DepthBuffer[x, y])
+                        // {
+                        //     m_DepthBuffer[x, y] = depth;
+                        //     m_FrameBuffer[x, y] = Color.White;
+                        // }
+                    }
                 }
             }
         }
