@@ -221,6 +221,9 @@ namespace LcLSoftRender
                 RasterizeTriangle(v0, v1, v2);
             }
         }
+
+        // 函数消耗计时
+        // private Stopwatch m_Stopwatch = new Stopwatch();
         /// <summary>
         /// 三角形光栅化(重心坐标法)
         /// </summary>
@@ -245,7 +248,11 @@ namespace LcLSoftRender
                 for (int x = minX; x <= maxX; x++)
                 {
                     // 计算像素的重心坐标
+
                     Vector3 barycentric = TransformTool.ScreenPositionToBarycentric(new Vector3(x, y, 0), screenPos0, screenPos1, screenPos2);
+
+
+                    barycentric = TransformTool.ComputeBarycentricCoordinates(new Vector3(x, y, 0), screenPos0, screenPos1, screenPos2);
 
                     // 如果像素在三角形内，则绘制该像素
                     if (barycentric.x >= 0 && barycentric.y >= 0 && barycentric.z >= 0)

@@ -144,30 +144,51 @@ namespace LcLSoftRender
         //     return perspectiveMatrix;
         // }
 
-        public static Vector3 ScreenPositionToBarycentric(Vector2 point, Vector3 v0, Vector3 v1, Vector3 v2)
+        // public static Vector3 ScreenPositionToBarycentric(Vector2 point, Vector3 v0, Vector3 v1, Vector3 v2)
+        // {
+        //     v0.z = 0;
+        //     v1.z = 0;
+        //     v2.z = 0;
+        //     // 计算三角形的面积
+        //     float area = Vector3.Cross(v1 - v0, v2 - v0).magnitude;
+
+        //     // 计算像素点到三角形三个顶点的距离
+        //     float d0 = Vector2.Distance(point, new Vector2(v0.x, v0.y));
+        //     float d1 = Vector2.Distance(point, new Vector2(v1.x, v1.y));
+        //     float d2 = Vector2.Distance(point, new Vector2(v2.x, v2.y));
+
+        //     // 将 screenPos 向量转换为 Vector3 类型的向量
+        //     Vector3 screenPos3 = new Vector3(point.x, point.y, 0);
+
+        //     // 计算像素点的重心坐标
+        //     float w0 = Vector3.Cross(v1 - v2, screenPos3 - v2).magnitude / area;
+        //     float w1 = Vector3.Cross(v2 - v0, screenPos3 - v0).magnitude / area;
+        //     float w2 = Vector3.Cross(v0 - v1, screenPos3 - v1).magnitude / area;
+
+        //     return new Vector3(w0, w1, w2);
+        // }
+        public static Vector3 ComputeBarycentricCoordinates(Vector2 p, Vector2 v0, Vector2 v1, Vector2 v2)
         {
-            v0.z = 0;
-            v1.z = 0;
-            v2.z = 0;
-            // 计算三角形的面积
-            float area = Vector3.Cross(v1 - v0, v2 - v0).magnitude;
+            // Compute vectors
+            Vector2 v01 = v1 - v0;
+            Vector2 v02 = v2 - v0;
+            Vector2 vp0 = p - v0;
 
-            // 计算像素点到三角形三个顶点的距离
-            float d0 = Vector2.Distance(point, new Vector2(v0.x, v0.y));
-            float d1 = Vector2.Distance(point, new Vector2(v1.x, v1.y));
-            float d2 = Vector2.Distance(point, new Vector2(v2.x, v2.y));
+            // Compute dot products
+            float dot00 = Vector2.Dot(v01, v01);
+            float dot01 = Vector2.Dot(v01, v02);
+            float dot02 = Vector2.Dot(v01, vp0);
+            float dot11 = Vector2.Dot(v02, v02);
+            float dot12 = Vector2.Dot(v02, vp0);
 
-            // 将 screenPos 向量转换为 Vector3 类型的向量
-            Vector3 screenPos3 = new Vector3(point.x, point.y, 0);
+            // Compute barycentric coordinates
+            float invDenom = 1 / (dot00 * dot11 - dot01 * dot01);
+            float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+            float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+            float w = 1 - u - v;
 
-            // 计算像素点的重心坐标
-            float w0 = Vector3.Cross(v1 - v2, screenPos3 - v2).magnitude / area;
-            float w1 = Vector3.Cross(v2 - v0, screenPos3 - v0).magnitude / area;
-            float w2 = Vector3.Cross(v0 - v1, screenPos3 - v1).magnitude / area;
-
-            return new Vector3(w0, w1, w2);
+            return new Vector3(u, v, w);
         }
-
         public static Vector3 ScreenPositionToBarycentric(Vector3 point, Vector3 A, Vector3 B, Vector3 C)
         {
             var weightA =
