@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Object = UnityEngine.Object;
+using Unity.Mathematics;
 
 class FrameBuffer
 {
@@ -13,7 +14,7 @@ class FrameBuffer
     private int m_Height;
 
     private Color[] m_ColorBuffer;
-    private Color[] m_DepthBuffer;
+    private float[] m_DepthBuffer;
 
     // private Texture2D m_ColorTexture;
     // private Texture2D m_DepthBuffer;
@@ -25,7 +26,8 @@ class FrameBuffer
 
         m_ColorBuffer = new Color[width * height];
         m_ColorTexture = new Texture2D(width, height, TextureFormat.RGBA32, false) { name = "ColorAttachment0" };
-        m_DepthBuffer = new Color[width * height];
+        // m_DepthBuffer = new Color[width * height];
+        m_DepthBuffer = new float[width * height];
         m_DepthTexture = new Texture2D(width, height, TextureFormat.RFloat, false);
     }
 
@@ -45,7 +47,10 @@ class FrameBuffer
     public void SetColor(int x, int y, Color color)
     {
         m_ColorBuffer[GetIndex(x, y)] = color;
-        // m_ColorTexture.SetPixel(x, y, color);
+    }
+    public void SetColor(int x, int y, float4 color)
+    {
+        SetColor(x, y, new Color(color.x, color.y, color.z, color.w));
     }
 
     public void Foreach(Action<int, int> action)
@@ -65,18 +70,18 @@ class FrameBuffer
     {
         m_ColorTexture.SetPixels(m_ColorBuffer);
         m_ColorTexture.Apply();
-        m_DepthTexture.SetPixels(m_DepthBuffer);
-        m_DepthTexture.Apply();
+        // m_DepthTexture.SetPixels(m_DepthBuffer);
+        // m_DepthTexture.Apply();
     }
 
     public float GetDepth(int x, int y)
     {
-        return m_DepthBuffer[GetIndex(x, y)].r;
+        return m_DepthBuffer[GetIndex(x, y)];
     }
 
     public void SetDepth(int x, int y, float depth)
     {
-        m_DepthBuffer[GetIndex(x, y)] = new Color(depth, 0, 0, 0);
+        m_DepthBuffer[GetIndex(x, y)] = depth;
     }
 
     public Texture2D GetOutputTexture()

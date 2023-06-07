@@ -1,18 +1,22 @@
 // using System.Numerics;
 using UnityEngine;
 using System.Collections.Generic;
-// using Unity.Mathematics;
+using System.Reflection;
+using System;
+using Unity.Mathematics;
+using static Unity.Mathematics.math;
 
 namespace LcLSoftRender
 {
     class CPURasterizer : IRasterizer
     {
+        PrimitiveType m_PrimitiveType = PrimitiveType.Triangle;
         private int m_Width;
         private int m_Height;
         private Vector2Int m_ScreenSize;
-        private Matrix4x4 m_Model;
-        private Matrix4x4 m_MatrixVP;
-        private Matrix4x4 m_MatrixMVP;
+        private float4x4 m_Model;
+        private float4x4 m_MatrixVP;
+        private float4x4 m_MatrixMVP;
         private FrameBuffer m_FrameBuffer;
         // private List<VertexBuffer> m_VertexBuffers = new List<VertexBuffer>();
         // private List<IndexBuffer> m_IndexBuffers = new List<IndexBuffer>();
@@ -32,51 +36,43 @@ namespace LcLSoftRender
             get => m_FrameBuffer.GetOutputTexture();
         }
 
-        public void CalculateMatriaxMVP(Matrix4x4 model)
+        public float4x4 CalculateMatrixMVP(float4x4 model)
         {
             m_Model = model;
             m_MatrixMVP = m_MatrixVP * m_Model;
+            return m_MatrixMVP;
         }
         public void SetShader(LcLShader shader)
         {
             m_OverrideShader = shader;
         }
-        public void SetMatrixVP(Matrix4x4 matrixVP)
+        public void SetMatrixVP(float4x4 matrixVP)
         {
             m_MatrixVP = matrixVP;
         }
 
-
-        /// <summary>
-        ///  生成顶点缓冲区
-        /// VOB：Vertex Object Buffer
-        /// </summary>
-        /// <param name="vertices"></param>
-        // public void GenVertexBuffer(IEnumerable<Vertex> vertices)
-        // {
-        //     m_VertexBuffers.Add(new VertexBuffer(vertices));
-        // }
-        /// <summary>
-        /// 生成索引缓冲区
-        /// IBO：Index Object Buffer
-        /// </summary>
-        /// <param name="indices"></param>
-        // public void GenIndexBuffer(IEnumerable<int> indices)
-        // {
-        //     m_IndexBuffers.Add(new IndexBuffer(indices));
-        // }
-
-
-        public void Render()
+        public void SetPrimitiveType(PrimitiveType primitiveType)
         {
-            // Clear(ClearMask.COLOR | ClearMask.DEPTH);
-            // SetView(m_worldToLocalMatrix);
-
-            // m_FrameBuffer.SetColor(0, 0, Color.red);
-            // m_FrameBuffer.Apply();
+            m_PrimitiveType = primitiveType;
         }
 
+        public void Render(List<RenderObject> renderObjects)
+        {
+            foreach (var model in renderObjects)
+            {
+                model.shader.MatrixM = model.GetMatrixM();
+                model.shader.MatrixVP = m_MatrixVP;
+                model.shader.MatrixMVP = CalculateMatrixMVP(model.GetMatrixM());
+                DrawElements(model);
+            }
+        }
 
+        /// <summary>
+        /// 清空缓冲区
+        /// </summary>
+        /// <param name="mask"></param>
+        /// <param name="clearColor"></param>
+        /// <param name="depth"></param>
         public void Clear(ClearMask mask, Color? clearColor = null, float depth = float.PositiveInfinity)
         {
             Color realClearColor = clearColor == null ? Color.clear : clearColor.Value;
@@ -96,11 +92,13 @@ namespace LcLSoftRender
             m_FrameBuffer.Apply();
         }
 
-        public void DrawElements(RenderObject model, PrimitiveType primitiveType)
+        /// <summary>
+        /// 绘制
+        /// </summary>
+        /// <param name="model"></param>
+        public void DrawElements(RenderObject model)
         {
-            // UnityEngine.Assertions.Assert.IsTrue(m_CurVertexBufferHandle != -1, "No vertex buffer binding");
-
-            switch (primitiveType)
+            switch (m_PrimitiveType)
             {
                 case PrimitiveType.Line:
                     DrawWireFrame(model);
@@ -125,13 +123,14 @@ namespace LcLSoftRender
 
             var vertexBuffer = model.vertexBuffer;
             var indexBuffer = model.indexBuffer;
+            var shader = model.shader;
             for (int i = 0; i < indexBuffer.Count(); i += 3)
             {
                 Vertex v0 = vertexBuffer[indexBuffer[i + 0]];
                 Vertex v1 = vertexBuffer[indexBuffer[i + 1]];
                 Vertex v2 = vertexBuffer[indexBuffer[i + 2]];
 
-                WireFrameTriangle(v0, v1, v2, model.albedoColor);
+                WireFrameTriangle(v0, v1, v2, shader.baseColor);
             }
         }
 
@@ -144,9 +143,9 @@ namespace LcLSoftRender
         /// <param name="color"></param>
         private void WireFrameTriangle(Vertex v0, Vertex v1, Vertex v2, Color color)
         {
-            var screenPos0 = TransformTool.ModelPositionToScreenPosition(v0.position, m_MatrixMVP, m_ScreenSize);
-            var screenPos1 = TransformTool.ModelPositionToScreenPosition(v1.position, m_MatrixMVP, m_ScreenSize);
-            var screenPos2 = TransformTool.ModelPositionToScreenPosition(v2.position, m_MatrixMVP, m_ScreenSize);
+            var screenPos0 = TransformTool.ModelPositionToScreenPosition(v0.position, m_MatrixMVP, m_ScreenSize).xyz;
+            var screenPos1 = TransformTool.ModelPositionToScreenPosition(v1.position, m_MatrixMVP, m_ScreenSize).xyz;
+            var screenPos2 = TransformTool.ModelPositionToScreenPosition(v2.position, m_MatrixMVP, m_ScreenSize).xyz;
 
             DrawLine(screenPos0, screenPos1, color);
             DrawLine(screenPos1, screenPos2, color);
@@ -158,7 +157,7 @@ namespace LcLSoftRender
         /// </summary>
         /// <param name="v0"></param>
         /// <param name="v1"></param>
-        private void DrawLine(Vector3 v0, Vector3 v1, Color color)
+        private void DrawLine(float3 v0, float3 v1, Color color)
         {
             int x0 = (int)v0.x;
             int y0 = (int)v0.y;
@@ -212,35 +211,37 @@ namespace LcLSoftRender
 
             var vertexBuffer = model.vertexBuffer;
             var indexBuffer = model.indexBuffer;
+            var shader = model.shader;
             for (int i = 0; i < indexBuffer.Count(); i += 3)
             {
                 Vertex v0 = vertexBuffer[indexBuffer[i + 0]];
                 Vertex v1 = vertexBuffer[indexBuffer[i + 1]];
                 Vertex v2 = vertexBuffer[indexBuffer[i + 2]];
-
-                RasterizeTriangle(v0, v1, v2);
+                RasterizeTriangle(v0, v1, v2, shader);
             }
         }
 
-        // 函数消耗计时
-        // private Stopwatch m_Stopwatch = new Stopwatch();
         /// <summary>
         /// 三角形光栅化(重心坐标法)
         /// </summary>
         /// <param name="v0"></param>
         /// <param name="v1"></param>
         /// <param name="v2"></param>
-        private void RasterizeTriangle(Vertex v0, Vertex v1, Vertex v2)
+        private void RasterizeTriangle(Vertex v0, Vertex v1, Vertex v2, LcLShader shader)
         {
-            var screenPos0 = TransformTool.ModelPositionToScreenPosition(v0.position, m_MatrixMVP, m_ScreenSize);
-            var screenPos1 = TransformTool.ModelPositionToScreenPosition(v1.position, m_MatrixMVP, m_ScreenSize);
-            var screenPos2 = TransformTool.ModelPositionToScreenPosition(v2.position, m_MatrixMVP, m_ScreenSize);
+            var vertex0 = shader.Vertex(v0);
+            var vertex1 = shader.Vertex(v1);
+            var vertex2 = shader.Vertex(v2);
+
+            var position0 = vertex0.positionCS;
+            var position1 = vertex1.positionCS;
+            var position2 = vertex2.positionCS;
 
             // 计算三角形的边界框
-            int minX = (int)Mathf.Min(screenPos0.x, Mathf.Min(screenPos1.x, screenPos2.x));
-            int minY = (int)Mathf.Min(screenPos0.y, Mathf.Min(screenPos1.y, screenPos2.y));
-            int maxX = (int)Mathf.Max(screenPos0.x, Mathf.Max(screenPos1.x, screenPos2.x));
-            int maxY = (int)Mathf.Max(screenPos0.y, Mathf.Max(screenPos1.y, screenPos2.y));
+            int minX = (int)Mathf.Min(position0.x, Mathf.Min(position1.x, position2.x));
+            int minY = (int)Mathf.Min(position0.y, Mathf.Min(position1.y, position2.y));
+            int maxX = (int)Mathf.Max(position0.x, Mathf.Max(position1.x, position2.x));
+            int maxY = (int)Mathf.Max(position0.y, Mathf.Max(position1.y, position2.y));
 
             // 遍历边界框内的每个像素
             for (int y = minY; y <= maxY; y++)
@@ -248,115 +249,112 @@ namespace LcLSoftRender
                 for (int x = minX; x <= maxX; x++)
                 {
                     // 计算像素的重心坐标
-
-                    Vector3 barycentric = TransformTool.ScreenPositionToBarycentric(new Vector3(x, y, 0), screenPos0, screenPos1, screenPos2);
-
-
-                    barycentric = TransformTool.ComputeBarycentricCoordinates(new Vector3(x, y, 0), screenPos0, screenPos1, screenPos2);
+                    Vector3 barycentric = TransformTool.ComputeBarycentricCoordinates(new Vector2(x, y), position0.xy, position1.xy, position2.xy);
 
                     // 如果像素在三角形内，则绘制该像素
                     if (barycentric.x >= 0 && barycentric.y >= 0 && barycentric.z >= 0)
                     {
                         // 计算像素的深度值
-                        float depth = barycentric.x * screenPos0.z + barycentric.y * screenPos1.z + barycentric.z * screenPos2.z;
-                        m_FrameBuffer.SetColor(x, y, Color.red);
-
+                        float depth = barycentric.x * position0.z + barycentric.y * position1.z + barycentric.z * position2.z;
+                        var depthBuffer = m_FrameBuffer.GetDepth(x, y);
                         // 如果像素的深度值小于深度缓冲区中的值，则更新深度缓冲区并绘制该像素
-                        // if (depth < m_DepthBuffer[x, y])
-                        // {
-                        //     m_DepthBuffer[x, y] = depth;
-                        //     m_FrameBuffer[x, y] = Color.White;
-                        // }
+                        if (depth < depthBuffer)
+                        {
+                            // var lerpVertex = InterpolateVertex(vertex0, vertex1, vertex2, barycentric);
+                            var lerpVertex = InterpolateVertexOutputs(vertex0, vertex1, vertex2, barycentric);
+
+
+                            var color = shader.Fragment(lerpVertex, out bool isDiscard);
+                            if (!isDiscard)
+                            {
+                                    
+
+                                m_FrameBuffer.SetColor(x, y, color);
+                                m_FrameBuffer.SetDepth(x, y, depth);
+                            }
+                        }
                     }
                 }
             }
         }
 
-        // private float GetTriangleArea(Vector2Int p1, Vector2Int p2, Vector2Int p3)
-        // {
-        //     // 计算三角形的面积
-        //     return Mathf.Abs(p1 * (p2.y - p3.y) + p2.x * (p3.y - p1.y) + p3.x * (p1.y - p2.y)) / 2;
-        // }
+        private VertexOutput InterpolateVertexOutputs(VertexOutput v0, VertexOutput v1, VertexOutput v2, Vector3 barycentric)
+        {
+            var result = (VertexOutput)Activator.CreateInstance(v0.GetType());
+            // result.positionCS = barycentric.x * v0.positionCS + barycentric.y * v1.positionCS + barycentric.z * v2.positionCS;
+            result.normal = barycentric.x * v0.normal + barycentric.y * v1.normal + barycentric.z * v2.normal;
+            result.color = barycentric.x * v0.color + barycentric.y * v1.color + barycentric.z * v2.color;
+            result.uv = barycentric.x * v0.uv + barycentric.y * v1.uv + barycentric.z * v2.uv;
+            return result;
+        }
+
+
         /// <summary>
-        /// 光栅化三角形
+        /// 插值(速度太慢了...)
         /// </summary>
         /// <param name="v0"></param>
         /// <param name="v1"></param>
         /// <param name="v2"></param>
-        private void RasterTriangle(Vertex v0, Vertex v1, Vertex v2)
+        /// <param name="barycentric"></param>
+        /// <returns></returns>
+        public VertexOutput InterpolateVertex(VertexOutput v0, VertexOutput v1, VertexOutput v2, Vector3 barycentric)
         {
-            var screenPos0 = TransformTool.ModelPositionToScreenPosition(v0.position, m_MatrixMVP, m_ScreenSize);
-            var screenPos1 = TransformTool.ModelPositionToScreenPosition(v1.position, m_MatrixMVP, m_ScreenSize);
-            var screenPos2 = TransformTool.ModelPositionToScreenPosition(v2.position, m_MatrixMVP, m_ScreenSize);
+            var interpolated = (VertexOutput)Activator.CreateInstance(v0.GetType());
+            // 获取VertexOutput的所有字段
+            var fields = typeof(VertexOutput).GetFields(BindingFlags.Public | BindingFlags.Instance);
 
-            // 对三角形的三个顶点按照 y 坐标从小到大排序
-            if (screenPos0.y > screenPos1.y)
+            foreach (var field in fields)
             {
-                Vertex temp = v0;
-                v0 = v1;
-                v1 = temp;
-                var tempScreenPos = screenPos0;
-                screenPos0 = screenPos1;
-                screenPos1 = tempScreenPos;
-            }
-            if (screenPos0.y > screenPos2.y)
-            {
-                Vertex temp = v0;
-                v0 = v2;
-                v2 = temp;
-                var tempScreenPos = screenPos0;
-                screenPos0 = screenPos2;
-                screenPos2 = tempScreenPos;
-            }
-            if (screenPos1.y > screenPos2.y)
-            {
-                Vertex temp = v1;
-                v1 = v2;
-                v2 = temp;
-                var tempScreenPos = screenPos1;
-                screenPos1 = screenPos2;
-                screenPos2 = tempScreenPos;
-            }
+                // 获取字段的类型
+                var fieldType = field.FieldType;
 
-            // 计算三条边的斜率 k0、k1、k2，以及截距 b0、b1、b2
-            float k0 = (screenPos1.x - screenPos0.x) / (screenPos1.y - screenPos0.y);
-            float k1 = (screenPos2.x - screenPos0.x) / (screenPos2.y - screenPos0.y);
-            float k2 = (screenPos2.x - screenPos1.x) / (screenPos2.y - screenPos1.y);
-            float b0 = screenPos0.x - k0 * screenPos0.y;
-            float b1 = screenPos0.x - k1 * screenPos0.y;
-            float b2 = screenPos1.x - k2 * screenPos1.y;
-
-            // 从 v0 开始，按照 y 坐标从小到大的顺序，扫描每一行像素
-            for (int y = Mathf.RoundToInt(screenPos0.y); y <= Mathf.RoundToInt(screenPos2.y); y++)
-            {
-                // 计算出该行与三条边的交点 x0、x1、x2
-                float x0 = k0 * y + b0;
-                float x1 = k1 * y + b1;
-                float x2 = k2 * y + b2;
-
-                // 将 x0、x1、x2 按照 x 坐标从小到大排序，得到两个区间 [x0, x1] 和 [x1, x2]
-                float xStart = Mathf.Min(x0, Mathf.Min(x1, x2));
-                float xEnd = Mathf.Max(x0, Mathf.Max(x1, x2));
-                float xMiddle = x0 + x1 + x2 - xStart - xEnd;
-
-                // 对于每个区间，从左到右遍历每个像素，计算出该像素的颜色值，并将其写入帧缓冲区
-                for (int x = Mathf.RoundToInt(xStart); x <= Mathf.RoundToInt(xEnd); x++)
+                // 如果字段是Vector2类型，则进行插值
+                if (fieldType == typeof(Vector2))
                 {
-                    float t = (x - xStart) / (xEnd - xStart);
-                    if (x < Mathf.RoundToInt(xMiddle))
-                    {
-                        t = (x - xStart) / (xMiddle - xStart);
-                        Color color = Color.Lerp(v0.color, v1.color, t);
-                        m_FrameBuffer.SetColor(x, y, color);
-                    }
-                    else
-                    {
-                        t = (x - xMiddle) / (xEnd - xMiddle);
-                        Color color = Color.Lerp(v1.color, v2.color, t);
-                        m_FrameBuffer.SetColor(x, y, color);
-                    }
+                    var value0 = (Vector2)field.GetValue(v0);
+                    var value1 = (Vector2)field.GetValue(v1);
+                    var value2 = (Vector2)field.GetValue(v2);
+                    var interpolatedValue = barycentric.x * value0 + barycentric.y * value1 + barycentric.z * value2;
+                    field.SetValue(interpolated, interpolatedValue);
+                }
+                // 如果字段是Vector3类型，则进行插值
+                else if (fieldType == typeof(Vector3))
+                {
+                    var value0 = (Vector3)field.GetValue(v0);
+                    var value1 = (Vector3)field.GetValue(v1);
+                    var value2 = (Vector3)field.GetValue(v2);
+                    var interpolatedValue = barycentric.x * value0 + barycentric.y * value1 + barycentric.z * value2;
+                    field.SetValue(interpolated, interpolatedValue);
+                }
+                else if (fieldType == typeof(Vector4))
+                {
+                    var value0 = (Vector4)field.GetValue(v0);
+                    var value1 = (Vector4)field.GetValue(v1);
+                    var value2 = (Vector4)field.GetValue(v2);
+                    var interpolatedValue = barycentric.x * value0 + barycentric.y * value1 + barycentric.z * value2;
+                    field.SetValue(interpolated, interpolatedValue);
+                }
+                // 如果字段是Color类型，则进行插值
+                else if (fieldType == typeof(Color))
+                {
+                    var value0 = (Color)field.GetValue(v0);
+                    var value1 = (Color)field.GetValue(v1);
+                    var value2 = (Color)field.GetValue(v2);
+                    var interpolatedValue = barycentric.x * value0 + barycentric.y * value1 + barycentric.z * value2;
+                    field.SetValue(interpolated, interpolatedValue);
+                }
+                // 如果字段是float类型，则进行插值
+                else if (fieldType == typeof(float))
+                {
+                    var value0 = (float)field.GetValue(v0);
+                    var value1 = (float)field.GetValue(v1);
+                    var value2 = (float)field.GetValue(v2);
+                    var interpolatedValue = barycentric.x * value0 + barycentric.y * value1 + barycentric.z * value2;
+                    field.SetValue(interpolated, interpolatedValue);
                 }
             }
+
+            return interpolated;
         }
 
         #endregion

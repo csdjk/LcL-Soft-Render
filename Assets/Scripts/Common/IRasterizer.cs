@@ -1,4 +1,5 @@
 
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace LcLSoftRender
@@ -6,7 +7,7 @@ namespace LcLSoftRender
     public interface IRasterizer
     {
         // void Setup();
-        void Render();
+        public abstract void Render(List<RenderObject> renderObjects);
         Texture ColorTexture { get; }
     }
 

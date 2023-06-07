@@ -1,38 +1,39 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Mathematics;
 
 namespace LcLSoftRender
 {
     public class Vertex
     {
-        private Vector3 m_Position;
-        public Vector3 position
+        private float3 m_Position;
+        public float3 position
         {
             get => m_Position;
             set => m_Position = value;
         }
-        private Vector2 m_UV;
-        public Vector2 uv
+        private float2 m_UV;
+        public float2 uv
         {
             get => m_UV;
             set => m_UV = value;
         }
 
-        private Vector3 m_Normal;
-        public Vector3 normal
+        private float3 m_Normal;
+        public float3 normal
         {
             get => m_Normal;
             set => m_Normal = value;
         }
-        private Vector4 m_Tangent;
-        public Vector4 tangent
+        private float4 m_Tangent;
+        public float4 tangent
         {
             get => m_Tangent;
             set => m_Tangent = value;
         }
-        private Color m_Color;
-        public Color color
+        private float4 m_Color;
+        public float4 color
         {
             get => m_Color;
             set => m_Color = value;
@@ -58,11 +59,12 @@ namespace LcLSoftRender
 
         public Vertex(Vector3 position, Vector2 uv, Vector3 normal, Vector4 tangent, Color color)
         {
+
             m_Position = position;
             m_UV = uv;
             m_Normal = normal;
             m_Tangent = tangent;
-            m_Color = color;
+            m_Color = new float4(color.r, color.g, color.b, color.a);
         }
     }
 }

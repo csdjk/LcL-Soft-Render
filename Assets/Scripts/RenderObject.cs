@@ -1,12 +1,17 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Mathematics;
+using static Unity.Mathematics.math;
+
 namespace LcLSoftRender
 {
     public class RenderObject : MonoBehaviour
     {
-        public Color albedoColor = Color.white;
-        
+
+        [SerializeReference]
+        public LcLShader shader;
+
         VertexBuffer m_VertexBuffer;
         public VertexBuffer vertexBuffer
         {
@@ -50,6 +55,16 @@ namespace LcLSoftRender
             }
             m_VertexBuffer = new VertexBuffer(mVertices);
             m_IndexBuffer = new IndexBuffer(indices);
+        }
+
+        public float4x4 GetMatrixM()
+        {
+            return transpose((float4x4)transform.localToWorldMatrix);
+        }
+
+        public void SetShader(LcLShader shader)
+        {
+            this.shader = shader;
         }
     }
 }
