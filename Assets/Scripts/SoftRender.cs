@@ -4,7 +4,6 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.Profiling;
 using Unity.Mathematics;
-
 namespace LcLSoftRender
 {
     struct LcLMesh
@@ -67,7 +66,7 @@ namespace LcLSoftRender
         private void Update()
         {
             Global.ambientColor = RenderSettings.ambientLight;
-            Global.screenSize = new Vector2Int(Screen.width, Screen.height);
+            Global.screenSize = new int2(Screen.width, Screen.height);
 
 
             Profiler.BeginSample("LcLSoftRender");
@@ -75,7 +74,7 @@ namespace LcLSoftRender
                 m_Rasterizer?.Clear(ClearMask.COLOR | ClearMask.DEPTH, clearColor);
 
 
-                float4x4 matrixVP;
+                Matrix4x4 matrixVP = Matrix4x4.identity;
                 if (m_Camera.orthographic)
                 {
                     matrixVP = TransformTool.CreateOrthographicMatrixVP(m_Camera);

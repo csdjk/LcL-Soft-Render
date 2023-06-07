@@ -39,25 +39,25 @@ namespace LcLSoftRender
             set => m_Color = value;
         }
 
-        public Vertex(Vector3 position)
+        public Vertex(float3 position)
         {
             m_Position = position;
         }
 
-        public Vertex(Vector3 position, Vector2 uv)
+        public Vertex(float3 position, float2 uv)
         {
             m_Position = position;
             m_UV = uv;
         }
 
-        public Vertex(Vector3 position, Vector2 uv, Vector3 normal)
+        public Vertex(float3 position, float2 uv, float3 normal)
         {
             m_Position = position;
             m_UV = uv;
             m_Normal = normal;
         }
 
-        public Vertex(Vector3 position, Vector2 uv, Vector3 normal, Vector4 tangent, Color color)
+        public Vertex(float3 position, float2 uv, float3 normal, float4 tangent, Color color)
         {
 
             m_Position = position;

@@ -46,6 +46,10 @@ class FrameBuffer
 
     public void SetColor(int x, int y, Color color)
     {
+        if (GetIndex(x, y) >= m_ColorBuffer.Length || GetIndex(x, y) < 0)
+        {
+            Debug.Log("2");
+        }
         m_ColorBuffer[GetIndex(x, y)] = color;
     }
     public void SetColor(int x, int y, float4 color)

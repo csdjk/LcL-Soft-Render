@@ -17,14 +17,15 @@ namespace LcLSoftRender
         /// <param name="matrixMVP"></param>
         /// <param name="screenSize"></param>
         /// <returns></returns>
-        public static float4 ModelPositionToScreenPosition(float3 modelPos, float4x4 matrixMVP, Vector2Int screenSize)
+        public static float4 ModelPositionToScreenPosition(float3 modelPos, float4x4 matrixMVP, int2 screenSize)
         {
+            matrixMVP = transpose(matrixMVP);
             // 将模型空间中的顶点坐标转换为裁剪空间中的坐标
             float4 clipPos = mul(matrixMVP, float4(modelPos.xyz, 1));
             // 将裁剪空间中的坐标转换为NDC空间中的坐标
             float3 ndcPos = clipPos.xyz / clipPos.w;
             // 将NDC空间中的坐标转换为屏幕空间中的坐标
-            Vector2 screenPos = new Vector2(
+            float2 screenPos = new float2(
                 (ndcPos.x + 1.0f) * 0.5f * screenSize.x,
                 (ndcPos.y + 1.0f) * 0.5f * screenSize.y
             );
@@ -44,25 +45,27 @@ namespace LcLSoftRender
         /// <returns></returns>
         public static float4x4 CreateMatrixVP(Camera camera)
         {
-            Vector3 position = camera.transform.position;
-            Vector3 forward = camera.transform.forward;
-            Vector3 up = camera.transform.up;
+            float3 position = camera.transform.position;
+            float3 forward = camera.transform.forward;
+            float3 up = camera.transform.up;
             // 创建一个视图变换矩阵
             var viewMatrix = CreateViewMatrix(position, forward, up);
-            // float4x4 viewMatrix = float4x4.TRS(camera.transform.position, camera.transform.rotation, Vector3.one).inverse;
+            // float4x4 viewMatrix = float4x4.TRS(camera.transform.position, camera.transform.rotation, float3.one).inverse;
 
             // 创建一个透视投影矩阵
             float4x4 projectionMatrix = Perspective(camera.nearClipPlane, camera.farClipPlane, camera.fieldOfView, camera.aspect);
 
             // 将视图矩阵和投影矩阵相乘，得到最终的视图投影矩阵
-            return projectionMatrix * viewMatrix;
+            // return viewMatrix * projectionMatrix;
+            var vp = mul(projectionMatrix, viewMatrix);
+            return vp;
         }
 
         public static float4x4 CreateOrthographicMatrixVP(Camera camera)
         {
-            Vector3 position = camera.transform.position;
-            Vector3 forward = camera.transform.forward;
-            Vector3 up = camera.transform.up;
+            float3 position = camera.transform.position;
+            float3 forward = camera.transform.forward;
+            float3 up = camera.transform.up;
             // 创建一个视图变换矩阵
             var viewMatrix = CreateViewMatrix(position, forward, up);
 
@@ -73,22 +76,23 @@ namespace LcLSoftRender
             return projectionMatrix * viewMatrix;
         }
 
-        public static float4x4 CreateViewMatrix(Vector3 position, Vector3 forward, Vector3 up)
+        public static float4x4 CreateViewMatrix(float3 position, float3 forward, float3 up)
         {
             // 计算相机的右向量
-            Vector3 right = Vector3.Cross(up, forward).normalized;
+            float3 right = normalize(cross(up, forward));
 
             // 计算相机的上向量
-            up = Vector3.Cross(forward, right).normalized;
+            up = normalize(cross(forward, right));
 
             // 创建一个变换矩阵，将相机的位置和方向转换为一个矩阵
             var viewMatrix = new float4x4(
-               new Vector4(right.x, up.x, forward.x, 0),
-               new Vector4(right.y, up.y, forward.y, 0),
-               new Vector4(right.z, up.z, forward.z, 0),
-               new Vector4(-Vector3.Dot(right, position), -Vector3.Dot(up, position), -Vector3.Dot(forward, position), 1)
+               new float4(right.x, up.x, forward.x, 0),
+               new float4(right.y, up.y, forward.y, 0),
+               new float4(right.z, up.z, forward.z, 0),
+               new float4(-dot(right, position), -dot(up, position), -dot(forward, position), 1)
            );
 
+            return (viewMatrix);
             return transpose(viewMatrix);
         }
 
@@ -105,10 +109,11 @@ namespace LcLSoftRender
         public static float4x4 Orthographic(float near, float far, float height, float aspect)
         {
             float width = height * aspect;
-            float4x4 orthographicMatrix = new float4x4(new Vector4(2f / width, 0, 0, 0),
-                                                         new Vector4(0, 2f / height, 0, 0),
-                                                         new Vector4(0, 0, 2f / (far - near), 0),
-                                                         new Vector4(0, 0, -(far + near) / (far - near), 1));
+            float4x4 orthographicMatrix = new float4x4(new float4(2f / width, 0, 0, 0),
+                                                         new float4(0, 2f / height, 0, 0),
+                                                         new float4(0, 0, 2f / (far - near), 0),
+                                                         new float4(0, 0, -(far + near) / (far - near), 1));
+            return (orthographicMatrix);
             return transpose(orthographicMatrix);
         }
 
@@ -127,10 +132,11 @@ namespace LcLSoftRender
             float tanHalfFov = Mathf.Tan(rad / 2);
             float fovY = 1 / tanHalfFov;
             float fovX = fovY / aspect;
-            float4x4 perspectiveMatrix = new float4x4(new Vector4(fovX, 0, 0, 0),
-                                                        new Vector4(0, fovY, 0, 0),
-                                                        new Vector4(0, 0, (far + near) / (far - near), 1),
-                                                        new Vector4(0, 0, -(2 * far * near) / (far - near), 0));
+            float4x4 perspectiveMatrix = new float4x4(new float4(fovX, 0, 0, 0),
+                                                        new float4(0, fovY, 0, 0),
+                                                        new float4(0, 0, (far + near) / (far - near), -(2 * far * near) / (far - near)),
+                                                        new float4(0, 0, 1, 0));
+            return (perspectiveMatrix);
             return transpose(perspectiveMatrix);
         }
 
@@ -139,10 +145,10 @@ namespace LcLSoftRender
         //     float height = 2 * near * Mathf.Tan(Mathf.Deg2Rad * (fov / 2));
         //     float width = aspect * height;
 
-        //     float4x4 perspectiveMatrix = new float4x4(new Vector4(2 * near / width, 0, 0, 0),
-        //                                                 new Vector4(0, 2 * near / height, 0, 0),
-        //                                                 new Vector4(0, 0, (near + far) / (far - near), 1),
-        //                                                 new Vector4(0, 0, -(2 * near * far) / (far - near), 0));
+        //     float4x4 perspectiveMatrix = new float4x4(new float4(2 * near / width, 0, 0, 0),
+        //                                                 new float4(0, 2 * near / height, 0, 0),
+        //                                                 new float4(0, 0, (near + far) / (far - near), 1),
+        //                                                 new float4(0, 0, -(2 * near * far) / (far - near), 0));
 
         //     return perspectiveMatrix;
         // }

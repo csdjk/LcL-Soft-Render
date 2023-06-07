@@ -49,7 +49,7 @@ namespace LcLSoftRender
                 discard = true;
                 return 0;
             }
-            Vector3 test = new Vector3(1, 2);
+            // float3 test = new float3(1, 2, 3);
             
             var uv = input.uv;
             var color = input.color;

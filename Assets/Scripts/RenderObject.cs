@@ -31,12 +31,12 @@ namespace LcLSoftRender
         public void Init()
         {
             var mesh = GetComponent<MeshFilter>()?.mesh;
-            Vector3[] vertices = mesh.vertices;
-            int[] indices = mesh.triangles;
-            Vector2[] uvs = mesh.uv;
-            Vector3[] normals = mesh.normals;
-            Vector4[] tangents = mesh.tangents;
-            Color[] colors = mesh.colors;
+            var vertices = mesh.vertices;
+            var indices = mesh.triangles;
+            var uvs = mesh.uv;
+            var normals = mesh.normals;
+            var tangents = mesh.tangents;
+            var colors = mesh.colors;
 
             Vertex[] mVertices = new Vertex[vertices.Length];
             if (colors.Length > 0)
@@ -59,7 +59,7 @@ namespace LcLSoftRender
 
         public float4x4 GetMatrixM()
         {
-            return transpose((float4x4)transform.localToWorldMatrix);
+            return (float4x4)transform.localToWorldMatrix;
         }
 
         public void SetShader(LcLShader shader)

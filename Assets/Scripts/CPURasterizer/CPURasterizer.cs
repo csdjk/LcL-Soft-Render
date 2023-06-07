@@ -13,7 +13,7 @@ namespace LcLSoftRender
         PrimitiveType m_PrimitiveType = PrimitiveType.Triangle;
         private int m_Width;
         private int m_Height;
-        private Vector2Int m_ScreenSize;
+        private int2 m_ScreenSize;
         private float4x4 m_Model;
         private float4x4 m_MatrixVP;
         private float4x4 m_MatrixMVP;
@@ -27,7 +27,7 @@ namespace LcLSoftRender
         {
             this.m_Width = width;
             this.m_Height = height;
-            m_ScreenSize = new Vector2Int(width, height);
+            m_ScreenSize = new int2(width, height);
             m_FrameBuffer = new FrameBuffer(width, height);
         }
 
@@ -39,7 +39,8 @@ namespace LcLSoftRender
         public float4x4 CalculateMatrixMVP(float4x4 model)
         {
             m_Model = model;
-            m_MatrixMVP = m_MatrixVP * m_Model;
+            // m_MatrixMVP = m_MatrixVP * m_Model;
+            m_MatrixMVP = mul(m_MatrixVP, m_Model);
             return m_MatrixMVP;
         }
         public void SetShader(LcLShader shader)
@@ -249,7 +250,7 @@ namespace LcLSoftRender
                 for (int x = minX; x <= maxX; x++)
                 {
                     // 计算像素的重心坐标
-                    Vector3 barycentric = TransformTool.ComputeBarycentricCoordinates(new Vector2(x, y), position0.xy, position1.xy, position2.xy);
+                    float3 barycentric = TransformTool.ComputeBarycentricCoordinates(new float2(x, y), position0.xy, position1.xy, position2.xy);
 
                     // 如果像素在三角形内，则绘制该像素
                     if (barycentric.x >= 0 && barycentric.y >= 0 && barycentric.z >= 0)
@@ -278,7 +279,7 @@ namespace LcLSoftRender
             }
         }
 
-        private VertexOutput InterpolateVertexOutputs(VertexOutput v0, VertexOutput v1, VertexOutput v2, Vector3 barycentric)
+        private VertexOutput InterpolateVertexOutputs(VertexOutput v0, VertexOutput v1, VertexOutput v2, float3 barycentric)
         {
             var result = (VertexOutput)Activator.CreateInstance(v0.GetType());
             // result.positionCS = barycentric.x * v0.positionCS + barycentric.y * v1.positionCS + barycentric.z * v2.positionCS;
@@ -297,7 +298,7 @@ namespace LcLSoftRender
         /// <param name="v2"></param>
         /// <param name="barycentric"></param>
         /// <returns></returns>
-        public VertexOutput InterpolateVertex(VertexOutput v0, VertexOutput v1, VertexOutput v2, Vector3 barycentric)
+        public VertexOutput InterpolateVertex(VertexOutput v0, VertexOutput v1, VertexOutput v2, float3 barycentric)
         {
             var interpolated = (VertexOutput)Activator.CreateInstance(v0.GetType());
             // 获取VertexOutput的所有字段
@@ -309,28 +310,28 @@ namespace LcLSoftRender
                 var fieldType = field.FieldType;
 
                 // 如果字段是Vector2类型，则进行插值
-                if (fieldType == typeof(Vector2))
+                if (fieldType == typeof(float2))
                 {
-                    var value0 = (Vector2)field.GetValue(v0);
-                    var value1 = (Vector2)field.GetValue(v1);
-                    var value2 = (Vector2)field.GetValue(v2);
+                    var value0 = (float2)field.GetValue(v0);
+                    var value1 = (float2)field.GetValue(v1);
+                    var value2 = (float2)field.GetValue(v2);
                     var interpolatedValue = barycentric.x * value0 + barycentric.y * value1 + barycentric.z * value2;
                     field.SetValue(interpolated, interpolatedValue);
                 }
                 // 如果字段是Vector3类型，则进行插值
-                else if (fieldType == typeof(Vector3))
+                else if (fieldType == typeof(float3))
                 {
-                    var value0 = (Vector3)field.GetValue(v0);
-                    var value1 = (Vector3)field.GetValue(v1);
-                    var value2 = (Vector3)field.GetValue(v2);
+                    var value0 = (float3)field.GetValue(v0);
+                    var value1 = (float3)field.GetValue(v1);
+                    var value2 = (float3)field.GetValue(v2);
                     var interpolatedValue = barycentric.x * value0 + barycentric.y * value1 + barycentric.z * value2;
                     field.SetValue(interpolated, interpolatedValue);
                 }
-                else if (fieldType == typeof(Vector4))
+                else if (fieldType == typeof(float4))
                 {
-                    var value0 = (Vector4)field.GetValue(v0);
-                    var value1 = (Vector4)field.GetValue(v1);
-                    var value2 = (Vector4)field.GetValue(v2);
+                    var value0 = (float4)field.GetValue(v0);
+                    var value1 = (float4)field.GetValue(v1);
+                    var value2 = (float4)field.GetValue(v2);
                     var interpolatedValue = barycentric.x * value0 + barycentric.y * value1 + barycentric.z * value2;
                     field.SetValue(interpolated, interpolatedValue);
                 }

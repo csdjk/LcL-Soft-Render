@@ -29,7 +29,6 @@ namespace LcLSoftRender
             VertexOutput output = new Attribute();
             output.positionCS = TransformTool.ModelPositionToScreenPosition(vertex.position, MatrixMVP, Global.screenSize);
             // output.normal = MatrixM * vertex.normal;
-            // output.normal = MatrixM.MultiplyVector(vertex.normal);
             // output.uv = vertex.uv;
             // output.color = vertex.color;
             return output;

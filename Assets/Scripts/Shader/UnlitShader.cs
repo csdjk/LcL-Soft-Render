@@ -24,8 +24,6 @@ namespace LcLSoftRender
         {
             VertexOutput output = new UnlitVertexOutput();
             output.positionCS = TransformTool.ModelPositionToScreenPosition(vertex.position.xyz, MatrixMVP, Global.screenSize);
-            // output.normal = matrixVP.inverse.transpose.MultiplyVector(vertex.normal);
-            // output.tangent = matrixVP.inverse.transpose.MultiplyVector(vertex.tangent);
             // output.uv = vertex.uv;
             // output.color = vertex.color;
             return output;
