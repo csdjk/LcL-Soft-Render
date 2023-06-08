@@ -30,8 +30,6 @@ namespace LcLSoftRender
         CPURasterizer m_Rasterizer;
         List<RenderObject> m_RenderObjects = new List<RenderObject>();
         List<MeshFilter> m_Meshes = new List<MeshFilter>();
-        BlinnPhongShader m_BlinnPhongShader;
-        List<LcLMesh> m_Models = new List<LcLMesh>();
 
         private void Awake()
         {
@@ -43,14 +41,8 @@ namespace LcLSoftRender
             var width = Screen.width;
             var height = Screen.height;
             m_Camera = GetComponent<Camera>();
-
-            m_Models.Clear();
-
-
             m_Rasterizer = new CPURasterizer(width, height);
             CollectRenderObjects();
-            m_BlinnPhongShader = new BlinnPhongShader();
-
         }
 
         // 收集所有的渲染对象

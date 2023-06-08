@@ -9,8 +9,6 @@ namespace LcLSoftRender
     public class UnlitShader : LcLShader
     {
         /// ================================ Shader 属性 ================================
-        public Color color = Color.white;
-        public float intensity = 1.0f;
 
         internal class UnlitVertexOutput : VertexOutput
         {
@@ -24,8 +22,6 @@ namespace LcLSoftRender
         {
             VertexOutput output = new UnlitVertexOutput();
             output.positionCS = TransformTool.ModelPositionToScreenPosition(vertex.position.xyz, MatrixMVP, Global.screenSize);
-            // output.uv = vertex.uv;
-            // output.color = vertex.color;
             return output;
         }
 
@@ -38,7 +34,7 @@ namespace LcLSoftRender
             discard = false;
             vertexOutput = vertexOutput as UnlitVertexOutput;
 
-            return 1;
+            return baseColor.ToFloat4();
         }
     }
 }
