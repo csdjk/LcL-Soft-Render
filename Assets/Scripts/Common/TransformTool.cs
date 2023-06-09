@@ -29,13 +29,14 @@ namespace LcLSoftRender
                 (ndcPos.y + 1.0f) * 0.5f * screenSize.y
             );
 
-            // 将屏幕空间中的坐标转换为像素坐标
             return float4(
-                Mathf.RoundToInt(screenPos.x),
-                Mathf.RoundToInt(screenPos.y),
-                ndcPos.z,
-                clipPos.z
-            );
+                            Mathf.RoundToInt(screenPos.x),
+                            Mathf.RoundToInt(screenPos.y),
+                            // z裁剪空间中的深度值
+                            ndcPos.z,
+                            // w透视矫正系数
+                            clipPos.w
+                        );
         }
         /// <summary>
         /// 透视投影矩阵VP

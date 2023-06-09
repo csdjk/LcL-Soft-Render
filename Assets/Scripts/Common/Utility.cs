@@ -10,6 +10,10 @@ namespace LcLSoftRender
     {
         public static float4 tex2D(Texture2D texture, float2 uv)
         {
+            if (texture == null)
+            {
+                return 1;
+            }
             return texture.GetPixel((int)(uv.x * texture.width), (int)(uv.y * texture.height)).ToFloat4();
         }
 

@@ -39,7 +39,6 @@ namespace LcLSoftRender
         public float4x4 CalculateMatrixMVP(float4x4 model)
         {
             m_Model = model;
-            // m_MatrixMVP = m_MatrixVP * m_Model;
             m_MatrixMVP = mul(m_MatrixVP, m_Model);
             return m_MatrixMVP;
         }
@@ -218,7 +217,6 @@ namespace LcLSoftRender
                 Vertex v0 = vertexBuffer[indexBuffer[i + 0]];
                 Vertex v1 = vertexBuffer[indexBuffer[i + 1]];
                 Vertex v2 = vertexBuffer[indexBuffer[i + 2]];
-                // RasterizeTriangle(v0, v1, v2, shader);
                 RasterizeTriangle(v0, v1, v2, shader);
             }
         }
@@ -259,20 +257,28 @@ namespace LcLSoftRender
                     // 如果像素在三角形内，则绘制该像素
                     if (barycentric.x >= 0 && barycentric.y >= 0 && barycentric.z >= 0)
                     {
-                        // 除以w分量(摄像机空间的Z)，以进行透视矫正
-                        barycentric = barycentric / float3(vertex0.positionCS.w, vertex1.positionCS.w, vertex2.positionCS.w);
-                        // 除以重心坐标的和进行归一化，以确保它们的和为1
-                        barycentric = barycentric / (barycentric.x + barycentric.y + barycentric.z);
-                        // barycentric = 1 / (barycentric.x + barycentric.y + barycentric.z);
+                        // // 除以w分量(摄像机空间的Z)，以进行透视矫正
+                        // barycentric = barycentric / float3(vertex0.positionCS.w, vertex1.positionCS.w, vertex2.positionCS.w);
+                        // // 除以重心坐标的和进行归一化，以确保它们的和为1
+                        // barycentric = barycentric / (barycentric.x + barycentric.y + barycentric.z);
 
-                        // 计算像素的深度值
+                        /// ================================ 透视矫正 ================================
+                        // 推导公式:https://blog.csdn.net/Motarookie/article/details/124284471
+                        // z 是当前像素在摄像机空间中的深度值。
+                        float z = 1 / (barycentric.x / position0.w + barycentric.y / position1.w + barycentric.z / position2.w);
+                        // 除以w分量(透视矫正系数)，以进行透视矫正
+                        barycentric = barycentric / float3(position0.w, position1.w, position2.w) * z;
+
+                        /// ================================ 当前像素的深度插值 ================================
                         float depth = barycentric.x * position0.z + barycentric.y * position1.z + barycentric.z * position2.z;
+
                         var depthBuffer = m_FrameBuffer.GetDepth(x, y);
                         // 如果像素的深度值小于深度缓冲区中的值，则更新深度缓冲区并绘制该像素
                         if (depth < depthBuffer)
                         {
+                            // 插值顶点属性
                             var lerpVertex = InterpolateVertexOutputs(vertex0, vertex1, vertex2, barycentric);
-
+                            
                             var color = shader.Fragment(lerpVertex, out bool isDiscard);
                             if (!isDiscard)
                             {
@@ -311,6 +317,7 @@ namespace LcLSoftRender
             float3 viewDir = normalize(v0.position - Global.cameraPosition);
             return dot(normal, viewDir) > 0;
         }
+
 
         private VertexOutput InterpolateVertexOutputs(VertexOutput v0, VertexOutput v1, VertexOutput v2, float3 barycentric)
         {

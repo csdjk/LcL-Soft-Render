@@ -9,3 +9,6 @@ public static class Global
     public static int2 screenSize { get; set; }
     public static float3 cameraPosition { get; set; }
 }
+
+
+// create cmmera class
