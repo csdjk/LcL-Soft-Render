@@ -59,7 +59,7 @@ namespace LcLSoftRender
         {
             Global.ambientColor = RenderSettings.ambientLight;
             Global.screenSize = new int2(Screen.width, Screen.height);
-
+            Global.cameraPosition = m_Camera.transform.position;
 
             Profiler.BeginSample("LcLSoftRender");
             {

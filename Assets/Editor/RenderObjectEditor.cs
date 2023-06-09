@@ -38,6 +38,7 @@ namespace LcLSoftRender
             serializedObject.Update();
             EditorGUI.BeginChangeCheck();
             {
+                shaderIndex = shaderNames.ToList().IndexOf(renderObject.shader.GetType().Name);
                 shaderIndex = EditorGUILayout.Popup("Shader", shaderIndex, shaderNames);
             }
             if (EditorGUI.EndChangeCheck())

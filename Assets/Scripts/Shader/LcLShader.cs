@@ -19,17 +19,9 @@ namespace LcLSoftRender
     public abstract class LcLShader
     {
         public virtual RenderQueue RenderQueue { get; set; } = RenderQueue.Geometry;
-
-        // public bool ZWrite = true;
         public virtual ZWrite ZWrite { get; set; } = ZWrite.On;
-
-        // public ZTest zTest = ZTest.LessEqual;
         public virtual ZTest ZTest { get; set; } = ZTest.LessEqual;
-
-        // public CullMode CullMode = CullMode.Back;
         public virtual CullMode CullMode { get; set; } = CullMode.Back;
-
-        // public BlendMode BlendMode = BlendMode.None;
         public virtual BlendMode BlendMode { get; set; } = BlendMode.None;
 
 

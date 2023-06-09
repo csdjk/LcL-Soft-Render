@@ -34,7 +34,7 @@ namespace LcLSoftRender
                 Mathf.RoundToInt(screenPos.x),
                 Mathf.RoundToInt(screenPos.y),
                 ndcPos.z,
-                1
+                clipPos.z
             );
         }
         /// <summary>
@@ -83,10 +83,10 @@ namespace LcLSoftRender
 
             // 创建一个变换矩阵，将相机的位置和方向转换为一个矩阵
             var viewMatrix = new float4x4(
-               new float4(right.x, up.x, forward.x, 0),
-               new float4(right.y, up.y, forward.y, 0),
-               new float4(right.z, up.z, forward.z, 0),
-               new float4(-dot(right, position), -dot(up, position), -dot(forward, position), 1)
+               float4(right.x, up.x, forward.x, 0),
+               float4(right.y, up.y, forward.y, 0),
+               float4(right.z, up.z, forward.z, 0),
+               float4(-dot(right, position), -dot(up, position), -dot(forward, position), 1)
            );
             return viewMatrix;
         }
@@ -104,10 +104,11 @@ namespace LcLSoftRender
         public static float4x4 Orthographic(float near, float far, float height, float aspect)
         {
             float width = height * aspect;
-            float4x4 orthographicMatrix = new float4x4(new float4(2f / width, 0, 0, 0),
-                                                         new float4(0, 2f / height, 0, 0),
-                                                         new float4(0, 0, 2f / (far - near), 0),
-                                                         new float4(0, 0, -(far + near) / (far - near), 1));
+            float4x4 orthographicMatrix = new float4x4(float4(2f / width, 0, 0, 0),
+                                                    float4(0, 2f / height, 0, 0),
+                                                    float4(0, 0, 2f / (far - near), 0),
+                                                    float4(0, 0, -(far + near) / (far - near), 1)
+                                                        );
             return orthographicMatrix;
         }
 
@@ -126,34 +127,76 @@ namespace LcLSoftRender
             float tanHalfFov = Mathf.Tan(rad / 2);
             float fovY = 1 / tanHalfFov;
             float fovX = fovY / aspect;
-            float4x4 perspectiveMatrix = new float4x4(new float4(fovX, 0, 0, 0),
-                                                        new float4(0, fovY, 0, 0),
-                                                        new float4(0, 0, (far + near) / (far - near), 1),
-                                                        new float4(0, 0, -(2 * far * near) / (far - near), 0));
+            float4x4 perspectiveMatrix = new float4x4(
+                                                float4(fovX, 0, 0, 0),
+                                                float4(0, fovY, 0, 0),
+                                                float4(0, 0, (far + near) / (far - near), 1),
+                                                float4(0, 0, -(2 * far * near) / (far - near), 0)
+                                                    );
             return perspectiveMatrix;
         }
 
-        public static float3 ComputeBarycentricCoordinates(float2 p, float2 v0, float2 v1, float2 v2)
+        /// <summary>
+        /// 高效的重心坐标算法
+        /// (https://github.com/ssloy/tinyrenderer/wiki/Lesson-2:-Triangle-rasterization-and-back-face-culling)
+        /// </summary>
+        /// <param name="P"></param>
+        /// <param name="v0"></param>
+        /// <param name="v1"></param>
+        /// <param name="v2"></param>
+        /// <returns></returns>
+        public static float3 BarycentricCoordinate(float2 P, float2 v0, float2 v1, float2 v2)
         {
-            // Compute vectors
-            float2 v01 = v1 - v0;
-            float2 v02 = v2 - v0;
-            float2 vp0 = p - v0;
+            var v2v0 = v2 - v0;
+            var v1v0 = v1 - v0;
+            var v0P = v0 - P;
+            float3 u = cross(float3(v2v0.x, v1v0.x, v0P.x), float3(v2v0.y, v1v0.y, v0P.y));
+            // float3 u = cross(float3(v2.x - v0.x, v1.x - v0.x, v0.x - P.x), float3(v2.y - v0.y, v1.y - v0.y, v0.y - P.y));
+            if (abs(u.z) < 1) return float3(-1, 1, 1);
+            return float3(1 - (u.x + u.y) / u.z, u.y / u.z, u.x / u.z);
+        }
 
-            // Compute dot products
-            float dot00 = dot(v01, v01);
-            float dot01 = dot(v01, v02);
-            float dot02 = dot(v01, vp0);
-            float dot11 = dot(v02, v02);
-            float dot12 = dot(v02, vp0);
+        /// <summary>
+        ///  重心坐标(https://zhuanlan.zhihu.com/p/538468807)
+        /// </summary>
+        /// <param name="p"></param>
+        /// <param name="v0"></param>
+        /// <param name="v1"></param>
+        /// <param name="v2"></param>
+        /// <returns></returns>
+        public static float3 BarycentricCoordinate2(float2 p, float3 v0, float3 v1, float3 v2)
+        {
+            // 计算三角形三个边的向量(左手坐标系，顺时针为正，逆时针为负)
+            float3 v0v1 = new float3(v1.xy - v0.xy, 0);
+            float3 v1v2 = new float3(v2.xy - v1.xy, 0);
+            float3 v2v0 = new float3(v0.xy - v2.xy, 0);
+            // 计算点p到三角形三个顶点的向量
+            float3 v0p = new float3(p - v0.xy, 0);
+            float3 v1p = new float3(p - v1.xy, 0);
+            float3 v2p = new float3(p - v2.xy, 0);
 
-            // Compute barycentric coordinates
-            float invDenom = 1 / (dot00 * dot11 - dot01 * dot01);
-            float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
-            float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
-            float w = 1 - u - v;
+            // 计算三角形的法向量，用来判断三角形的正反面
+            var normal = cross(v2v0, v0v1);
+            // 大三角形面积，这里没有除以2，因为后面计算的时候会相互抵消
+            float area = abs(normal.z);
+            // 方向向量
+            normal = normalize(normal);
 
-            return new float3(u, v, w);
+            // 计算三角形的面积：
+            // 叉乘可以用来计算两个向量所在平行四边形的面积，因为叉乘的结果是一个向量，
+            // 将这个向量与单位法向量进行点乘，可以得到一个有向的面积。
+            // 小三角形面积
+            // float area0 = dot(cross(v1v2, v1p), normal);
+            // float area1 = dot(cross(v2v0, v2p), normal);
+            // float area2 = dot(cross(v0v1, v0p), normal);
+
+            // 又因为所有的点z都为0，所以z就是向量的模长，也就是面积，所以可以进一步简化为：
+            float area0 = cross(v1v2, v1p).z * normal.z;
+            float area1 = cross(v2v0, v2p).z * normal.z;
+            float area2 = cross(v0v1, v0p).z * normal.z;
+
+
+            return new float3(area0 / area, area1 / area, area2 / area);
         }
 
     }

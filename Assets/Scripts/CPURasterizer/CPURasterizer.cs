@@ -218,6 +218,7 @@ namespace LcLSoftRender
                 Vertex v0 = vertexBuffer[indexBuffer[i + 0]];
                 Vertex v1 = vertexBuffer[indexBuffer[i + 1]];
                 Vertex v2 = vertexBuffer[indexBuffer[i + 2]];
+                // RasterizeTriangle(v0, v1, v2, shader);
                 RasterizeTriangle(v0, v1, v2, shader);
             }
         }
@@ -230,6 +231,10 @@ namespace LcLSoftRender
         /// <param name="v2"></param>
         private void RasterizeTriangle(Vertex v0, Vertex v1, Vertex v2, LcLShader shader)
         {
+            // if (IsBackFace(v0, v1, v2))
+            // {
+            //     return;
+            // }
             var vertex0 = shader.Vertex(v0);
             var vertex1 = shader.Vertex(v1);
             var vertex2 = shader.Vertex(v2);
@@ -239,37 +244,38 @@ namespace LcLSoftRender
             var position2 = vertex2.positionCS;
 
             // 计算三角形的边界框
-            int minX = (int)Mathf.Min(position0.x, Mathf.Min(position1.x, position2.x));
-            int minY = (int)Mathf.Min(position0.y, Mathf.Min(position1.y, position2.y));
-            int maxX = (int)Mathf.Max(position0.x, Mathf.Max(position1.x, position2.x));
-            int maxY = (int)Mathf.Max(position0.y, Mathf.Max(position1.y, position2.y));
+            int2 bboxMin = (int2)min(position0.xy, min(position1.xy, position2.xy));
+            int2 bboxMax = (int2)max(position0.xy, max(position1.xy, position2.xy));
 
             // 遍历边界框内的每个像素
-            for (int y = minY; y <= maxY; y++)
+            for (int y = bboxMin.y; y <= bboxMax.y; y++)
             {
-                for (int x = minX; x <= maxX; x++)
+                for (int x = bboxMin.x; x <= bboxMax.x; x++)
                 {
                     // 计算像素的重心坐标
-                    float3 barycentric = TransformTool.ComputeBarycentricCoordinates(new float2(x, y), position0.xy, position1.xy, position2.xy);
+                    float3 barycentric = TransformTool.BarycentricCoordinate(float2(x, y), position0.xy, position1.xy, position2.xy);
+                    // float3 barycentric = TransformTool.BarycentricCoordinate2(float2(x, y), position0.xyz, position1.xyz, position2.xyz);
 
                     // 如果像素在三角形内，则绘制该像素
                     if (barycentric.x >= 0 && barycentric.y >= 0 && barycentric.z >= 0)
                     {
+                        // 除以w分量(摄像机空间的Z)，以进行透视矫正
+                        barycentric = barycentric / float3(vertex0.positionCS.w, vertex1.positionCS.w, vertex2.positionCS.w);
+                        // 除以重心坐标的和进行归一化，以确保它们的和为1
+                        barycentric = barycentric / (barycentric.x + barycentric.y + barycentric.z);
+                        // barycentric = 1 / (barycentric.x + barycentric.y + barycentric.z);
+
                         // 计算像素的深度值
                         float depth = barycentric.x * position0.z + barycentric.y * position1.z + barycentric.z * position2.z;
                         var depthBuffer = m_FrameBuffer.GetDepth(x, y);
                         // 如果像素的深度值小于深度缓冲区中的值，则更新深度缓冲区并绘制该像素
                         if (depth < depthBuffer)
                         {
-                            // var lerpVertex = InterpolateVertex(vertex0, vertex1, vertex2, barycentric);
                             var lerpVertex = InterpolateVertexOutputs(vertex0, vertex1, vertex2, barycentric);
-
 
                             var color = shader.Fragment(lerpVertex, out bool isDiscard);
                             if (!isDiscard)
                             {
-                                    
-
                                 m_FrameBuffer.SetColor(x, y, color);
                                 m_FrameBuffer.SetDepth(x, y, depth);
                             }
@@ -278,9 +284,37 @@ namespace LcLSoftRender
                 }
             }
         }
+        private bool IsClockwise(Vertex v0, Vertex v1, Vertex v2)
+        {
+            float2 e1 = v1.position.xy - v0.position.xy;
+            float2 e2 = v2.position.xy - v0.position.xy;
+            return Cross(e1, e2) < 0;
+        }
+        private float Cross(float2 a, float2 b)
+        {
+            return a.x * b.y - a.y * b.x;
+        }
+
+
+        /// <summary>
+        /// 判断三角形是否为背面三角形
+        /// </summary>
+        /// <param name="v0"></param>
+        /// <param name="v1"></param>
+        /// <param name="v2"></param>
+        /// <returns></returns>
+        private bool IsBackFace(Vertex v0, Vertex v1, Vertex v2)
+        {
+            float3 e1 = v1.position - v0.position;
+            float3 e2 = v2.position - v0.position;
+            float3 normal = cross(e1, e2);
+            float3 viewDir = normalize(v0.position - Global.cameraPosition);
+            return dot(normal, viewDir) > 0;
+        }
 
         private VertexOutput InterpolateVertexOutputs(VertexOutput v0, VertexOutput v1, VertexOutput v2, float3 barycentric)
         {
+
             var result = (VertexOutput)Activator.CreateInstance(v0.GetType());
             // result.positionCS = barycentric.x * v0.positionCS + barycentric.y * v1.positionCS + barycentric.z * v2.positionCS;
             result.normal = barycentric.x * v0.normal + barycentric.y * v1.normal + barycentric.z * v2.normal;

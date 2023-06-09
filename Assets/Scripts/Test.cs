@@ -15,7 +15,7 @@ public class Test : MonoBehaviour
         // Debug.Log("Transform position from matrix is: " + position);
         // var position2 = new float3(matrix.m03, matrix.m13, matrix.m23);
         // Debug.Log("Transform position from matrix is: " + position2);
-    // Matrix4x4
+        // Matrix4x4
 
         // var matrix = new float4x4(new float4(1, 2, 3, 4),
         //                             new float4(5, 6, 7, 8),
@@ -47,6 +47,9 @@ public class Test : MonoBehaviour
         Debug.Log(newPoint2);
 
     }
+
+
+    
     // Update is called once per frame
     void Update()
     {
