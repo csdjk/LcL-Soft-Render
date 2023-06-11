@@ -7,11 +7,18 @@ using static Unity.Mathematics.math;
 namespace LcLSoftRender
 {
 
-    public class AlphaShader : LcLShader
+    public class AlphaBlendShader : LcLShader
     {
-        /// ================================ Shader 属性 ================================
+        public AlphaBlendShader()
+        {
+            RenderQueue = RenderQueue.Transparent;
+            BlendMode = BlendMode.AlphaBlend;
+        }
 
-        public override RenderQueue RenderQueue { get => RenderQueue.Transparent; set => base.RenderQueue = value; }
+        /// ================================ Shader 属性 ================================
+        public Texture2D mainTexture;
+
+
         /// <summary>
         /// 顶点着色器输出
         /// </summary>
@@ -28,8 +35,8 @@ namespace LcLSoftRender
         {
             VertexOutput output = new Attribute();
             output.positionCS = TransformTool.ModelPositionToScreenPosition(vertex.position, MatrixMVP, Global.screenSize);
-            // output.normal = MatrixM * vertex.normal;
-            // output.uv = vertex.uv;
+            output.normal = mul(MatrixM, float4(vertex.normal, 0));
+            output.uv = vertex.uv;
             // output.color = vertex.color;
             return output;
         }
@@ -38,18 +45,20 @@ namespace LcLSoftRender
         /// 片元着色器
         /// </summary>
         /// <returns></returns>
-        public override float4 Fragment(VertexOutput vertexOutput, out bool discard)
+        public override bool Fragment(VertexOutput vertexOutput, out float4 colorOutput)
         {
-            discard = false;
+            colorOutput = 0;
             vertexOutput = vertexOutput as Attribute;
-            var color = vertexOutput.color;
-            var normalWS = normalize(vertexOutput.normal);
-            color.x = normalWS.x;
-            color.y = normalWS.y;
-            color.z = normalWS.z;
-            color.w = 0.5f;
 
-            return color;
+            var uv = vertexOutput.uv;
+            var normalWS = normalize(vertexOutput.normal);
+
+            var tex = Utility.tex2D(mainTexture, uv);
+
+            colorOutput.xyz = tex.xyz;
+            colorOutput.w = 0.5f;
+
+            return false;
         }
     }
 }

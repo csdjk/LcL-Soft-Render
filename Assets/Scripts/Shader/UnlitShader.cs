@@ -8,8 +8,14 @@ namespace LcLSoftRender
 
     public class UnlitShader : LcLShader
     {
-        /// ================================ Shader 属性 ================================
+        public UnlitShader()
+        {
+            RenderQueue = RenderQueue.Geometry;
+        }
 
+
+
+        /// ================================ Shader 属性 ================================
         internal class UnlitVertexOutput : VertexOutput
         {
         }
@@ -29,12 +35,12 @@ namespace LcLSoftRender
         /// 片元着色器
         /// </summary>
         /// <returns></returns>
-        public override float4 Fragment(VertexOutput vertexOutput, out bool discard)
+        public override bool Fragment(VertexOutput vertexOutput, out float4 colorOutput)
         {
-            discard = false;
             vertexOutput = vertexOutput as UnlitVertexOutput;
 
-            return baseColor.ToFloat4();
+            colorOutput = baseColor.ToFloat4();
+            return false;
         }
     }
 }

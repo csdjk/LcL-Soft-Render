@@ -9,9 +9,16 @@ namespace LcLSoftRender
 {
     public class AlphaTestShader : LcLShader
     {
+
+        public AlphaTestShader()
+        {
+            RenderQueue = RenderQueue.AlphaTest;
+        }
         /// ================================ Shader 属性 ================================
-        public override RenderQueue RenderQueue { get => RenderQueue.AlphaTest; }
         public Texture2D mainTexture;
+
+
+        /// ================================================================
         /// <summary>
         /// 顶点着色器输出
         /// </summary>
@@ -28,7 +35,6 @@ namespace LcLSoftRender
         {
             VertexOutput output = new Attribute();
             output.positionCS = TransformTool.ModelPositionToScreenPosition(vertex.position, MatrixMVP, Global.screenSize);
-            // output.normal = MatrixM * vertex.normal;
             output.normal = mul(MatrixM, float4(vertex.normal, 0));
             output.uv = vertex.uv;
             output.color = vertex.color;
@@ -39,27 +45,21 @@ namespace LcLSoftRender
         /// 片元着色器
         /// </summary>
         /// <returns></returns>
-        public override float4 Fragment(VertexOutput input, out bool discard)
+        public override bool Fragment(VertexOutput input, out float4 colorOutput)
         {
-            discard = false;
+            colorOutput = 1;
             input = input as Attribute;
-
-            // if (input.uv.x < 0.5f)
-            // {
-            //     discard = true;
-            //     return 0;
-            // }
 
             var uv = input.uv;
 
             var tex = Utility.tex2D(mainTexture, uv);
-            return tex;
+            if (tex.w < 0.5f)
+            {
+                return true;
+            }
 
-            var color = input.color;
-            color.x = uv.x;
-            color.y = uv.y;
-            // return float4(input.positionCS.xy/Global.screenSize, 0, 1);
-            return float4(uv.xy, 0, 1);
+            colorOutput.xyz = baseColor.ToFloat4().xyz;
+            return false;
         }
     }
 }

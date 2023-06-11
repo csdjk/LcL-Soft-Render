@@ -5,92 +5,101 @@ using System.Collections.Generic;
 using UnityEngine;
 using Object = UnityEngine.Object;
 using Unity.Mathematics;
-
-class FrameBuffer
+namespace LcLSoftRender
 {
-    public Texture2D m_ColorTexture;
-    public Texture2D m_DepthTexture;
-    private int m_Width;
-    private int m_Height;
-
-    private Color[] m_ColorBuffer;
-    private float[] m_DepthBuffer;
-
-    // private Texture2D m_ColorTexture;
-    // private Texture2D m_DepthBuffer;
-
-    public FrameBuffer(int width, int height)
+    class FrameBuffer
     {
-        m_Width = width;
-        m_Height = height;
+        public Texture2D m_ColorTexture;
+        public Texture2D m_DepthTexture;
+        private int m_Width;
+        private int m_Height;
 
-        m_ColorBuffer = new Color[width * height];
-        m_ColorTexture = new Texture2D(width, height, TextureFormat.RGBA32, false) { name = "ColorAttachment0" };
-        // m_DepthBuffer = new Color[width * height];
-        m_DepthBuffer = new float[width * height];
-        m_DepthTexture = new Texture2D(width, height, TextureFormat.RFloat, false);
-    }
+        private Color[] m_ColorBuffer;
+        private float[] m_DepthBuffer;
 
-    public void Release()
-    {
-        if (m_ColorTexture != null)
-            Object.Destroy(m_ColorTexture);
-        if (m_DepthTexture != null)
-            Object.Destroy(m_DepthTexture);
-    }
+        // private Texture2D m_ColorTexture;
+        // private Texture2D m_DepthBuffer;
 
-    public int GetIndex(int x, int y)
-    {
-        return y * m_Width + x;
-    }
-
-    public void SetColor(int x, int y, Color color)
-    {
-        if (GetIndex(x, y) >= m_ColorBuffer.Length || GetIndex(x, y) < 0)
+        public FrameBuffer(int width, int height)
         {
-            Debug.Log("2");
+            m_Width = width;
+            m_Height = height;
+
+            m_ColorBuffer = new Color[width * height];
+            m_ColorTexture = new Texture2D(width, height, TextureFormat.RGBA32, false) { name = "ColorAttachment0" };
+            // m_DepthBuffer = new Color[width * height];
+            m_DepthBuffer = new float[width * height];
+            m_DepthTexture = new Texture2D(width, height, TextureFormat.RFloat, false);
         }
-        m_ColorBuffer[GetIndex(x, y)] = color;
-    }
-    public void SetColor(int x, int y, float4 color)
-    {
-        SetColor(x, y, new Color(color.x, color.y, color.z, color.w));
-    }
 
-    public void Foreach(Action<int, int> action)
-    {
-        // 遍历m_ColorAttachment0 每个像素
-        for (int x = 0; x < m_Width; x++)
+        public void Release()
         {
-            for (int y = 0; y < m_Height; y++)
+            if (m_ColorTexture != null)
+                Object.Destroy(m_ColorTexture);
+            if (m_DepthTexture != null)
+                Object.Destroy(m_DepthTexture);
+        }
+
+        public int GetIndex(int x, int y)
+        {
+            return y * m_Width + x;
+        }
+
+        public void SetColor(int x, int y, Color color)
+        {
+            if (GetIndex(x, y) >= m_ColorBuffer.Length || GetIndex(x, y) < 0)
             {
-                action(x, y);
+                Debug.Log("2");
+            }
+            m_ColorBuffer[GetIndex(x, y)] = color;
+        }
+        public void SetColor(int x, int y, float4 color)
+        {
+            SetColor(x, y, new Color(color.x, color.y, color.z, color.w));
+        }
+
+        public float4 GetColor(int x, int y)
+        {
+            var color = m_ColorBuffer[GetIndex(x, y)];
+            return color.ToFloat4();
+        }
+
+
+        public void Foreach(Action<int, int> action)
+        {
+            // 遍历m_ColorAttachment0 每个像素
+            for (int x = 0; x < m_Width; x++)
+            {
+                for (int y = 0; y < m_Height; y++)
+                {
+                    action(x, y);
+                }
             }
         }
-    }
 
 
-    public void Apply()
-    {
-        m_ColorTexture.SetPixels(m_ColorBuffer);
-        m_ColorTexture.Apply();
-        // m_DepthTexture.SetPixels(m_DepthBuffer);
-        // m_DepthTexture.Apply();
-    }
+        public void Apply()
+        {
+            m_ColorTexture.SetPixels(m_ColorBuffer);
+            m_ColorTexture.Apply();
+            // m_DepthTexture.SetPixels(m_DepthBuffer);
+            // m_DepthTexture.Apply();
+        }
 
-    public float GetDepth(int x, int y)
-    {
-        return m_DepthBuffer[GetIndex(x, y)];
-    }
+        public float GetDepth(int x, int y)
+        {
+            return m_DepthBuffer[GetIndex(x, y)];
+        }
 
-    public void SetDepth(int x, int y, float depth)
-    {
-        m_DepthBuffer[GetIndex(x, y)] = depth;
-    }
+        public void SetDepth(int x, int y, float depth)
+        {
+            m_DepthBuffer[GetIndex(x, y)] = depth;
+        }
 
-    public Texture2D GetOutputTexture()
-    {
-        return m_ColorTexture;
+        public Texture2D GetOutputTexture()
+        {
+            return m_ColorTexture;
 
+        }
     }
 }

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using LcLSoftRender;
 using Unity.Mathematics;
 using UnityEngine;
 using static Unity.Mathematics.math;
@@ -46,6 +47,10 @@ public class Test : MonoBehaviour
         var newPoint2 = mul(matrix2, new float4(0, 0, 0, 1));
         Debug.Log(newPoint2);
 
+
+        RenderQueue renderQueue = RenderQueue.Geometry;
+        renderQueue = (RenderQueue)3001;
+        Debug.Log(renderQueue);
     }
 
 

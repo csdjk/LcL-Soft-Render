@@ -6,11 +6,14 @@ using static Unity.Mathematics.math;
 
 namespace LcLSoftRender
 {
+    [ExecuteAlways]
     public class RenderObject : MonoBehaviour
     {
 
         [SerializeReference]
-        public LcLShader shader;
+        public LcLShader shader = new UnlitShader();
+        public RenderQueue renderQueue => shader.RenderQueue;
+        public bool isTransparent => shader.RenderQueue >= RenderQueue.AlphaTest;
 
         VertexBuffer m_VertexBuffer;
         public VertexBuffer vertexBuffer
@@ -28,9 +31,14 @@ namespace LcLSoftRender
                 return m_IndexBuffer;
             }
         }
+
+        private void OnEnable() {
+            Init();
+        }
+
         public void Init()
         {
-            var mesh = GetComponent<MeshFilter>()?.mesh;
+            var mesh = GetComponent<MeshFilter>()?.sharedMesh;
             var vertices = mesh.vertices;
             var indices = mesh.triangles;
             var uvs = mesh.uv;

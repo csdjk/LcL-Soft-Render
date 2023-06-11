@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Debugger
+  m_Name: Debugger 1
   m_Shader: {fileID: 4800000, guid: e3bf8c03446c8ff4f90ea672cf51e5d7, type: 3}
   m_ValidKeywords:
   - _SHOWVALUE_TEXTURE
@@ -15,7 +15,7 @@ Material:
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: 2002
+  m_CustomRenderQueue: 2001
   stringTagMap: {}
   disabledShaderPasses: []
   m_SavedProperties:

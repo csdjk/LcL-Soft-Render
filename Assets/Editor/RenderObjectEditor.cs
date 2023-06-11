@@ -19,6 +19,7 @@ namespace LcLSoftRender
         private void OnEnable()
         {
             shaderProp = serializedObject.FindProperty("shader");
+
             InitShaderList();
         }
 
@@ -38,7 +39,8 @@ namespace LcLSoftRender
             serializedObject.Update();
             EditorGUI.BeginChangeCheck();
             {
-                shaderIndex = shaderNames.ToList().IndexOf(renderObject.shader.GetType().Name);
+                if (renderObject.shader != null)
+                    shaderIndex = shaderNames.ToList().IndexOf(renderObject.shader.GetType().Name);
                 shaderIndex = EditorGUILayout.Popup("Shader", shaderIndex, shaderNames);
             }
             if (EditorGUI.EndChangeCheck())
@@ -59,19 +61,52 @@ namespace LcLSoftRender
             if (showShaderBaseProp)
             {
                 GUILayout.BeginVertical(EditorStyles.helpBox);
+                {
+                    GUILayout.BeginHorizontal();
+                    {
+                        EditorGUILayout.LabelField("Render Queue", GUILayout.ExpandWidth(false));
+                        renderObject.shader.RenderQueue = (RenderQueue)EditorGUILayout.EnumPopup(renderObject.shader.RenderQueue, GUILayout.ExpandWidth(true));
+                        renderObject.shader.RenderQueue = (RenderQueue)EditorGUILayout.IntField((int)renderObject.shader.RenderQueue, GUILayout.ExpandWidth(false));
+                        serializedObject.ApplyModifiedProperties();
+                        serializedObject.Update();
+                    }
+                    GUILayout.EndHorizontal();
 
-                // 获取shaderProp基类的shader属性
-                renderObject.shader.RenderQueue = (RenderQueue)EditorGUILayout.EnumPopup("Render Queue", renderObject.shader.RenderQueue);
-                renderObject.shader.CullMode = (CullMode)EditorGUILayout.EnumPopup("Cull Mode", renderObject.shader.CullMode);
-                renderObject.shader.ZTest = (ZTest)EditorGUILayout.EnumPopup("ZTest", renderObject.shader.ZTest);
-                renderObject.shader.ZWrite = (ZWrite)EditorGUILayout.EnumPopup("ZWrite", renderObject.shader.ZWrite);
-                renderObject.shader.BlendMode = (BlendMode)EditorGUILayout.EnumPopup("Blend Mode", renderObject.shader.BlendMode);
+                    GUILayout.BeginHorizontal();
+                    {
+                        EditorGUILayout.LabelField("Cull Mode", GUILayout.ExpandWidth(false));
+                        renderObject.shader.CullMode = (CullMode)EditorGUILayout.EnumPopup(renderObject.shader.CullMode);
+                    }
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.BeginHorizontal();
+                    {
+                        EditorGUILayout.LabelField("ZTest", GUILayout.ExpandWidth(false));
+                        renderObject.shader.ZTest = (ZTest)EditorGUILayout.EnumPopup(renderObject.shader.ZTest);
+                    }
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.BeginHorizontal();
+                    {
+                        EditorGUILayout.LabelField("ZWrite", GUILayout.ExpandWidth(false));
+                        renderObject.shader.ZWrite = (ZWrite)EditorGUILayout.EnumPopup(renderObject.shader.ZWrite);
+                    }
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.BeginHorizontal();
+                    {
+                        EditorGUILayout.LabelField("Blend Mode", GUILayout.ExpandWidth(false));
+                        // renderObject.shader.BlendMode = (BlendMode)EditorGUILayout.EnumPopup(renderObject.shader.BlendMode);
+                        renderObject.shader.BlendMode = (BlendMode)EditorGUILayout.EnumPopup(renderObject.shader.BlendMode);
+                    }
+                    GUILayout.EndHorizontal();
+                }
                 EditorGUILayout.EndVertical();
 
             }
 
 
-            EditorGUILayout.PropertyField(shaderProp,new GUIContent("Shader Property"), true);
+            EditorGUILayout.PropertyField(shaderProp, new GUIContent("Shader Property"), true);
 
             serializedObject.ApplyModifiedProperties();
         }

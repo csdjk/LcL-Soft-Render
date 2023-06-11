@@ -11,7 +11,6 @@ namespace LcLSoftRender
         /// ================================ Shader 属性 ================================
         public float intensity = 1.0f;
 
-        // public override RenderQueue renderQueue { get => RenderQueue.Geometry; set => base.renderQueue = value; }
         /// <summary>
         /// 顶点着色器输出
         /// </summary>
@@ -38,12 +37,11 @@ namespace LcLSoftRender
         /// 片元着色器
         /// </summary>
         /// <returns></returns>
-        public override float4 Fragment(VertexOutput vertexOutput, out bool discard)
+        public override bool Fragment(VertexOutput vertexOutput, out float4 colorOutput)
         {
-            discard = false;
             vertexOutput = vertexOutput as BlinnPhongVertexOutput;
-            var color = vertexOutput.color;
-            return color;
+            colorOutput = vertexOutput.color;
+            return false;
         }
     }
 }

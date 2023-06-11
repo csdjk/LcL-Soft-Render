@@ -18,12 +18,25 @@ namespace LcLSoftRender
 
     public abstract class LcLShader
     {
-        public virtual RenderQueue RenderQueue { get; set; } = RenderQueue.Geometry;
-        public virtual ZWrite ZWrite { get; set; } = ZWrite.On;
-        public virtual ZTest ZTest { get; set; } = ZTest.LessEqual;
-        public virtual CullMode CullMode { get; set; } = CullMode.Back;
-        public virtual BlendMode BlendMode { get; set; } = BlendMode.None;
+        [SerializeField, HideInInspector]
+        protected RenderQueue m_RenderQueue = RenderQueue.Geometry;
+        public virtual RenderQueue RenderQueue { get => m_RenderQueue; set => m_RenderQueue = value; }
 
+        [SerializeField, HideInInspector]
+        protected ZWrite m_ZWrite = ZWrite.On;
+        public virtual ZWrite ZWrite { get => m_ZWrite; set => m_ZWrite = value; }
+
+        [SerializeField, HideInInspector]
+        protected ZTest m_ZTest = ZTest.LessEqual;
+        public virtual ZTest ZTest { get => m_ZTest; set => m_ZTest = value; }
+
+        [SerializeField, HideInInspector]
+        protected CullMode m_CullMode = CullMode.Back;
+        public virtual CullMode CullMode { get => m_CullMode; set => m_CullMode = value; }
+
+        [SerializeField, HideInInspector]
+        protected BlendMode m_BlendMode = BlendMode.None;
+        public virtual BlendMode BlendMode { get => m_BlendMode; set => m_BlendMode = value; }
 
         public Color baseColor = Color.white;
 
@@ -31,16 +44,8 @@ namespace LcLSoftRender
         public float4x4 MatrixVP { get; set; }
         public float4x4 MatrixMVP { get; set; }
 
-        public abstract float4 Fragment(VertexOutput vertexOutput, out bool discard);
+        public abstract bool Fragment(VertexOutput vertexOutput, out float4 color);
         public abstract VertexOutput Vertex(Vertex vertex);
-
-
-
-        public void Clip()
-        {
-            // do nothing
-        }
-
     }
 
 

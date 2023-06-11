@@ -14,6 +14,7 @@ namespace LcLSoftRender
         private int m_Width;
         private int m_Height;
         private int2 m_ScreenSize;
+        private Camera m_Camera;
         private float4x4 m_Model;
         private float4x4 m_MatrixVP;
         private float4x4 m_MatrixMVP;
@@ -23,12 +24,13 @@ namespace LcLSoftRender
         private LcLShader m_OverrideShader;
 
 
-        public CPURasterizer(int width, int height)
+        public CPURasterizer(int width, int height, Camera camera)
         {
             this.m_Width = width;
             this.m_Height = height;
             m_ScreenSize = new int2(width, height);
             m_FrameBuffer = new FrameBuffer(width, height);
+            m_Camera = camera;
         }
 
         public Texture ColorTexture
@@ -56,15 +58,24 @@ namespace LcLSoftRender
             m_PrimitiveType = primitiveType;
         }
 
+
+
         public void Render(List<RenderObject> renderObjects)
         {
-            foreach (var model in renderObjects)
+            int length = renderObjects.Count;
+            for (int i = 0; i < length; i++)
             {
+                RenderObject model = renderObjects[i];
                 model.shader.MatrixM = model.GetMatrixM();
                 model.shader.MatrixVP = m_MatrixVP;
                 model.shader.MatrixMVP = CalculateMatrixMVP(model.GetMatrixM());
                 DrawElements(model);
+                if (IsDebugging() && i == m_DebugIndex)
+                {
+                    break;
+                }
             }
+
         }
 
         /// <summary>
@@ -130,7 +141,7 @@ namespace LcLSoftRender
                 Vertex v1 = vertexBuffer[indexBuffer[i + 1]];
                 Vertex v2 = vertexBuffer[indexBuffer[i + 2]];
 
-                WireFrameTriangle(v0, v1, v2, shader.baseColor);
+                WireFrameTriangle(v0, v1, v2, shader);
             }
         }
 
@@ -141,15 +152,15 @@ namespace LcLSoftRender
         /// <param name="v1"></param>
         /// <param name="v2"></param>
         /// <param name="color"></param>
-        private void WireFrameTriangle(Vertex v0, Vertex v1, Vertex v2, Color color)
+        private void WireFrameTriangle(Vertex v0, Vertex v1, Vertex v2, LcLShader shader)
         {
-            var screenPos0 = TransformTool.ModelPositionToScreenPosition(v0.position, m_MatrixMVP, m_ScreenSize).xyz;
-            var screenPos1 = TransformTool.ModelPositionToScreenPosition(v1.position, m_MatrixMVP, m_ScreenSize).xyz;
-            var screenPos2 = TransformTool.ModelPositionToScreenPosition(v2.position, m_MatrixMVP, m_ScreenSize).xyz;
+            var vertex0 = shader.Vertex(v0);
+            var vertex1 = shader.Vertex(v1);
+            var vertex2 = shader.Vertex(v2);
 
-            DrawLine(screenPos0, screenPos1, color);
-            DrawLine(screenPos1, screenPos2, color);
-            DrawLine(screenPos2, screenPos0, color);
+            DrawLine(vertex0.positionCS.xyz, vertex1.positionCS.xyz, shader.baseColor);
+            DrawLine(vertex1.positionCS.xyz, vertex2.positionCS.xyz, shader.baseColor);
+            DrawLine(vertex2.positionCS.xyz, vertex0.positionCS.xyz, shader.baseColor);
         }
 
         /// <summary>
@@ -264,7 +275,7 @@ namespace LcLSoftRender
 
                         /// ================================ 透视矫正 ================================
                         // 推导公式:https://blog.csdn.net/Motarookie/article/details/124284471
-                        // z 是当前像素在摄像机空间中的深度值。
+                        // z是当前像素在摄像机空间中的深度值。
                         float z = 1 / (barycentric.x / position0.w + barycentric.y / position1.w + barycentric.z / position2.w);
                         // 除以w分量(透视矫正系数)，以进行透视矫正
                         barycentric = barycentric / float3(position0.w, position1.w, position2.w) * z;
@@ -278,10 +289,11 @@ namespace LcLSoftRender
                         {
                             // 插值顶点属性
                             var lerpVertex = InterpolateVertexOutputs(vertex0, vertex1, vertex2, barycentric);
-                            
-                            var color = shader.Fragment(lerpVertex, out bool isDiscard);
+
+                            var isDiscard = shader.Fragment(lerpVertex, out float4 color);
                             if (!isDiscard)
                             {
+                                color = Utility.BlendColors(color, m_FrameBuffer.GetColor(x, y), shader.BlendMode);
                                 m_FrameBuffer.SetColor(x, y, color);
                                 m_FrameBuffer.SetDepth(x, y, depth);
                             }
@@ -290,16 +302,7 @@ namespace LcLSoftRender
                 }
             }
         }
-        private bool IsClockwise(Vertex v0, Vertex v1, Vertex v2)
-        {
-            float2 e1 = v1.position.xy - v0.position.xy;
-            float2 e2 = v2.position.xy - v0.position.xy;
-            return Cross(e1, e2) < 0;
-        }
-        private float Cross(float2 a, float2 b)
-        {
-            return a.x * b.y - a.y * b.x;
-        }
+
 
 
         /// <summary>
@@ -400,5 +403,29 @@ namespace LcLSoftRender
         }
 
         #endregion
+
+
+        #region Debugger
+
+        int m_DebugIndex = -1;
+
+        /// <summary>
+        /// 设置调试索引
+        /// </summary>
+        /// <param name="debugIndex"></param>
+        public void SetDebugIndex(int debugIndex)
+        {
+            this.m_DebugIndex = debugIndex;
+        }
+        public void CloseDebugger()
+        {
+            m_DebugIndex = -1;
+        }
+        public bool IsDebugging()
+        {
+            return m_DebugIndex != -1;
+        }
+        #endregion
+
     }
 }

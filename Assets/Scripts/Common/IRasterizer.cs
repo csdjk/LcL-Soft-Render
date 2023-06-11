@@ -8,6 +8,7 @@ namespace LcLSoftRender
     {
         // void Setup();
         public abstract void Render(List<RenderObject> renderObjects);
+        public virtual void SetDebugIndex(int debugIndex) { }
         Texture ColorTexture { get; }
     }
 
