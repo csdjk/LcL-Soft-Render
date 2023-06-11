@@ -24,6 +24,17 @@ namespace LcLSoftRender
     [ExecuteAlways]
     public class SoftRender : MonoBehaviour
     {
+        public bool active
+        {
+            get
+            {
+                return m_Camera.cullingMask == 0;
+            }
+            set
+            {
+                m_Camera.cullingMask = value ? 0 : 1;
+            }
+        }
         public RasterizerType RasterizerType = RasterizerType.CPU;
         public Color clearColor = Color.black;
         public PrimitiveType primitiveType = PrimitiveType.Triangle;
@@ -36,9 +47,10 @@ namespace LcLSoftRender
         private void Awake()
         {
             Init();
+            Render();
         }
 
-        void Init()
+        public void Init()
         {
             var width = Screen.width;
             var height = Screen.height;
@@ -48,12 +60,13 @@ namespace LcLSoftRender
             DisableUnityCamera();
         }
 
+        private void OnDisable()
+        {
+            m_Camera.cullingMask = 1;
+        }
+
         private void DisableUnityCamera()
         {
-            if (!Application.isPlaying)
-            {
-                return;
-            }
             m_Camera.cullingMask = 0;
         }
 
@@ -68,17 +81,26 @@ namespace LcLSoftRender
             SortRenderObjects();
         }
 
+
+        private int m_FrameCount = 0;
+        public int m_FrameInterval = 2;
+
         private void Update()
         {
             if (!Application.isPlaying)
             {
                 return;
             }
-
+            // 每隔m_FrameInterval帧执行一次渲染
+            if (Time.frameCount - m_FrameCount < m_FrameInterval) return;
+            m_FrameCount = Time.frameCount;
+            Render();
+        }
+        public void Render()
+        {
             Global.ambientColor = RenderSettings.ambientLight;
             Global.screenSize = new int2(Screen.width, Screen.height);
             Global.cameraPosition = m_Camera.transform.position;
-
 
             Profiler.BeginSample("LcLSoftRender");
             {
@@ -128,21 +150,28 @@ namespace LcLSoftRender
            });
         }
 
-        public void DebugIndex(int debugIndex){
+        public void DebugIndex(int debugIndex)
+        {
             m_Rasterizer?.SetDebugIndex(debugIndex);
         }
 
         private void OnGUI()
         {
-            if (!Application.isPlaying)
-            {
-                return;
-            }
-            // draw full screen texture
             var texture = m_Rasterizer?.ColorTexture;
-            if (texture != null)
+            if (texture != null && active)
             {
                 GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), texture);
+            }
+
+            if (GUILayout.Button("LcL Render"))
+            {
+                active = true;
+                Init();
+                Render();
+            }
+            if (GUILayout.Button("Unity Render"))
+            {
+                active = false;
             }
         }
 

@@ -48,7 +48,10 @@ namespace LcLSoftRender
             m_ListView.selectionType = SelectionType.Single;
             m_ListView.onSelectedIndicesChange += (indices) =>
             {
-                m_SoftRender.DebugIndex(indices.First()); 
+                m_SoftRender.DebugIndex(indices.First());
+#if UNITY_EDITOR
+                m_SoftRender.Render();
+#endif
             };
             // m_ListView.onSelectionChange += objects =>
             // {
@@ -73,6 +76,10 @@ namespace LcLSoftRender
             {
                 m_ListView.style.display = DisplayStyle.Flex;
                 m_EnableButton.text = "Disable";
+#if UNITY_EDITOR
+                m_SoftRender.Init();
+                m_SoftRender.Render();
+#endif
             }
             else
             {

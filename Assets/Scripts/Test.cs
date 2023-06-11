@@ -10,6 +10,7 @@ public class Test : MonoBehaviour
 {
     private void OnEnable()
     {
+        Camera.main.depthTextureMode = DepthTextureMode.Depth;
         // Debug.Log(transform.position);
         // var matrix = transform.localToWorldMatrix;
         // var position = new float3(matrix[0, 3], matrix[1, 3], matrix[2, 3]);

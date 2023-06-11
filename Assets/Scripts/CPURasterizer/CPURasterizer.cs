@@ -278,15 +278,18 @@ namespace LcLSoftRender
                         // z是当前像素在摄像机空间中的深度值。
                         float z = 1 / (barycentric.x / position0.w + barycentric.y / position1.w + barycentric.z / position2.w);
                         // 除以w分量(透视矫正系数)，以进行透视矫正
-                        barycentric = barycentric / float3(position0.w, position1.w, position2.w) * z;
+                        // barycentric = barycentric / float3(position0.w, position1.w, position2.w) * z;
 
                         /// ================================ 当前像素的深度插值 ================================
                         float depth = barycentric.x * position0.z + barycentric.y * position1.z + barycentric.z * position2.z;
+                        depth *= z;
 
                         var depthBuffer = m_FrameBuffer.GetDepth(x, y);
-                        // 如果像素的深度值小于深度缓冲区中的值，则更新深度缓冲区并绘制该像素
-                        if (depth < depthBuffer)
+                        // 深度测试
+                        if (Utility.DepthTest(depth, depthBuffer, shader.ZTest))
                         {
+                            // 除以w分量(透视矫正系数)，以进行透视矫正
+                            barycentric = barycentric / float3(position0.w, position1.w, position2.w) * z;
                             // 插值顶点属性
                             var lerpVertex = InterpolateVertexOutputs(vertex0, vertex1, vertex2, barycentric);
 
@@ -295,7 +298,8 @@ namespace LcLSoftRender
                             {
                                 color = Utility.BlendColors(color, m_FrameBuffer.GetColor(x, y), shader.BlendMode);
                                 m_FrameBuffer.SetColor(x, y, color);
-                                m_FrameBuffer.SetDepth(x, y, depth);
+                                if (shader.ZWrite == ZWrite.On)
+                                    m_FrameBuffer.SetDepth(x, y, depth);
                             }
                         }
                     }

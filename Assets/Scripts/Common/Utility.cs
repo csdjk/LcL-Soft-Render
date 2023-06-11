@@ -29,6 +29,29 @@ namespace LcLSoftRender
             return new Vector3(normal.x * 2 - 1, normal.y * 2 - 1, normal.z * 2 - 1);
         }
 
+        public static bool DepthTest(float depth, float depthBuffer, ZTest zTest){
+            switch (zTest)
+            {
+                case ZTest.Always:
+                    return true;
+                case ZTest.Equal:
+                    return depth == depthBuffer;
+                case ZTest.Greater:
+                    return depth > depthBuffer;
+                case ZTest.GreaterEqual:
+                    return depth >= depthBuffer;
+                case ZTest.Less:
+                    return depth < depthBuffer;
+                case ZTest.LessEqual:
+                    return depth <= depthBuffer;
+                case ZTest.NotEqual:
+                    return depth != depthBuffer;
+                case ZTest.Never:
+                    return false;
+                default:
+                    return true;
+            }
+        }
 
 
         public static float4 BlendColors(float4 srcColor, float4 dstColor, BlendMode blendMode)

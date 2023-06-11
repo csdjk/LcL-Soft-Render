@@ -13,9 +13,11 @@ namespace LcLSoftRender
             RenderQueue = RenderQueue.Geometry;
         }
 
-
-
         /// ================================ Shader 属性 ================================
+        public Texture2D mainTexture;
+
+
+        /// 
         internal class UnlitVertexOutput : VertexOutput
         {
         }
@@ -28,6 +30,7 @@ namespace LcLSoftRender
         {
             VertexOutput output = new UnlitVertexOutput();
             output.positionCS = TransformTool.ModelPositionToScreenPosition(vertex.position.xyz, MatrixMVP, Global.screenSize);
+            output.uv = vertex.uv;
             return output;
         }
 
@@ -35,11 +38,15 @@ namespace LcLSoftRender
         /// 片元着色器
         /// </summary>
         /// <returns></returns>
-        public override bool Fragment(VertexOutput vertexOutput, out float4 colorOutput)
+        public override bool Fragment(VertexOutput input, out float4 colorOutput)
         {
-            vertexOutput = vertexOutput as UnlitVertexOutput;
+            input = input as UnlitVertexOutput;
+            colorOutput = 1;
 
-            colorOutput = baseColor.ToFloat4();
+            var uv = input.uv;
+
+            var tex = Utility.tex2D(mainTexture, uv);
+            colorOutput = baseColor.ToFloat4() * tex.xyzw;
             return false;
         }
     }
