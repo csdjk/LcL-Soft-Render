@@ -2,6 +2,8 @@ Shader "lcl/Debugger"
 {
     Properties
     {
+        [Enum(UnityEngine.Rendering.CullMode)]_CullMode ("CullMode", float) = 2
+
         _Color ("Color", Color) = (1, 1, 1, 1)
         _MainTex ("Texture", 2D) = "white" { }
         [KeywordEnum(Texture, Texture_R, Texture_G, Texture_B, Texture_A, VertexColor, VertexColor_R, VertexColor_G, VertexColor_B, VertexColor_A, normal, tangent, worldPos, uv0, uv1, uv2)] _ShowValue ("Pass Value", Int) = 0
@@ -14,6 +16,7 @@ Shader "lcl/Debugger"
     {
         Tags { "RenderType" = "Opaque" }
         ZWrite ON
+        Cull [_CullMode]
 
         Pass
         {

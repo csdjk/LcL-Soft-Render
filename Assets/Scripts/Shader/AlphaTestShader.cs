@@ -34,7 +34,7 @@ namespace LcLSoftRender
         public override VertexOutput Vertex(Vertex vertex)
         {
             VertexOutput output = new Attribute();
-            output.positionCS = TransformTool.ModelPositionToScreenPosition(vertex.position, MatrixMVP, Global.screenSize);
+            output.positionCS = TransformTool.TransformObjectToHClip(vertex.position, MatrixMVP);
             output.normal = mul(MatrixM, float4(vertex.normal, 0));
             output.uv = vertex.uv;
             output.color = vertex.color;

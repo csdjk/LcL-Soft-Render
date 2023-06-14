@@ -27,6 +27,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _CullMode: 2
     - _Gamma: 1
     - _Invert: 0
     - _ScleraSize: 1

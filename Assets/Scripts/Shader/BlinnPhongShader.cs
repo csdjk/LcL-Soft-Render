@@ -27,7 +27,7 @@ namespace LcLSoftRender
         public override VertexOutput Vertex(Vertex vertex)
         {
             VertexOutput output = new BlinnPhongVertexOutput();
-            output.positionCS = TransformTool.ModelPositionToScreenPosition(vertex.position, MatrixMVP, Global.screenSize);
+            output.positionCS = TransformTool.TransformObjectToHClip(vertex.position, MatrixMVP);
             output.uv = vertex.uv;
             output.color = vertex.color;
             return output;

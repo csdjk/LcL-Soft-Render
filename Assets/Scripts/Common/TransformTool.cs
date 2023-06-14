@@ -10,34 +10,34 @@ namespace LcLSoftRender
     /// </summary>
     public class TransformTool
     {
+        // 将裁剪空间中的坐标转换到屏幕空间中的坐标
+        public static float4 ClipPositionToScreenPosition(float4 clipPos, out float3 ndcPos)
+        {
+            // 将裁剪空间中的坐标转换为NDC空间中的坐标
+            ndcPos = clipPos.xyz / clipPos.w;
+            // 将NDC空间中的坐标转换为屏幕空间中的坐标
+            float4 screenPos = new float4(
+                (ndcPos.x + 1.0f) * 0.5f * Global.screenSize.x,
+                (ndcPos.y + 1.0f) * 0.5f * Global.screenSize.y,
+                // z深度
+                ndcPos.z,
+                // w透视矫正系数
+                clipPos.w
+            );
+            return screenPos;
+        }
         /// <summary>
-        /// 将模型空间中的顶点坐标转换为裁剪空间中的坐标
+        /// 将坐标从模型空间转换到其次裁剪空间
         /// </summary>
         /// <param name="modelPos"></param>
         /// <param name="matrixMVP"></param>
-        /// <param name="screenSize"></param>
         /// <returns></returns>
-        public static float4 ModelPositionToScreenPosition(float3 modelPos, float4x4 matrixMVP, int2 screenSize)
+        public static float4 TransformObjectToHClip(float3 modelPos, float4x4 matrixMVP)
         {
-            // 将模型空间中的顶点坐标转换为裁剪空间中的坐标
-            float4 clipPos = mul(matrixMVP, float4(modelPos.xyz, 1));
-            // 将裁剪空间中的坐标转换为NDC空间中的坐标
-            float3 ndcPos = clipPos.xyz / clipPos.w;
-            // 将NDC空间中的坐标转换为屏幕空间中的坐标
-            float2 screenPos = new float2(
-                (ndcPos.x + 1.0f) * 0.5f * screenSize.x,
-                (ndcPos.y + 1.0f) * 0.5f * screenSize.y
-            );
-
-            return float4(
-                            Mathf.RoundToInt(screenPos.x),
-                            Mathf.RoundToInt(screenPos.y),
-                            // z裁剪空间中的深度值
-                            ndcPos.z,
-                            // w透视矫正系数
-                            clipPos.w
-                        );
+            // float4 clipPos = mul(matrixMVP, float4(modelPos.xyz, 1));
+            return mul(matrixMVP, float4(modelPos.xyz, 1.0f));
         }
+
         /// <summary>
         /// 透视投影矩阵VP
         /// </summary>

@@ -157,10 +157,15 @@ namespace LcLSoftRender
             var vertex0 = shader.Vertex(v0);
             var vertex1 = shader.Vertex(v1);
             var vertex2 = shader.Vertex(v2);
+            var position0 = TransformTool.ClipPositionToScreenPosition(vertex0.positionCS, out var ndcPos0);
+            var position1 = TransformTool.ClipPositionToScreenPosition(vertex1.positionCS, out var ndcPos1);
+            var position2 = TransformTool.ClipPositionToScreenPosition(vertex2.positionCS, out var ndcPos2);
+            
+            if (IsCull(ndcPos0, ndcPos1, ndcPos2, shader.CullMode)) return;
 
-            DrawLine(vertex0.positionCS.xyz, vertex1.positionCS.xyz, shader.baseColor);
-            DrawLine(vertex1.positionCS.xyz, vertex2.positionCS.xyz, shader.baseColor);
-            DrawLine(vertex2.positionCS.xyz, vertex0.positionCS.xyz, shader.baseColor);
+            DrawLine(position0.xyz, position1.xyz, shader.baseColor);
+            DrawLine(position1.xyz, position2.xyz, shader.baseColor);
+            DrawLine(position2.xyz, position0.xyz, shader.baseColor);
         }
 
         /// <summary>
@@ -240,17 +245,16 @@ namespace LcLSoftRender
         /// <param name="v2"></param>
         private void RasterizeTriangle(Vertex v0, Vertex v1, Vertex v2, LcLShader shader)
         {
-            // if (IsBackFace(v0, v1, v2))
-            // {
-            //     return;
-            // }
+
             var vertex0 = shader.Vertex(v0);
             var vertex1 = shader.Vertex(v1);
             var vertex2 = shader.Vertex(v2);
 
-            var position0 = vertex0.positionCS;
-            var position1 = vertex1.positionCS;
-            var position2 = vertex2.positionCS;
+            var position0 = TransformTool.ClipPositionToScreenPosition(vertex0.positionCS, out var ndcPos0);
+            var position1 = TransformTool.ClipPositionToScreenPosition(vertex1.positionCS, out var ndcPos1);
+            var position2 = TransformTool.ClipPositionToScreenPosition(vertex2.positionCS, out var ndcPos2);
+
+            if (IsCull(ndcPos0, ndcPos1, ndcPos2, shader.CullMode)) return;
 
             // 计算三角形的边界框
             int2 bboxMin = (int2)min(position0.xy, min(position1.xy, position2.xy));
@@ -307,8 +311,43 @@ namespace LcLSoftRender
             }
         }
 
+        /// <summary>
+        /// 背面剔除
+        /// </summary>
+        /// <param name="v0"></param>
+        /// <param name="v1"></param>
+        /// <param name="v2"></param>
+        /// <param name="cullMode"></param>
+        /// <returns></returns>
+        private bool IsCull(float3 v0, float3 v1, float3 v2, CullMode cullMode)
+        {
+            switch (cullMode)
+            {
+                case CullMode.Back:
+                    return IsBackFace(v0, v1, v2);
+                case CullMode.Front:
+                    return IsFrontFace(v0, v1, v2);
+                case CullMode.None:
+                    return false;
+                default:
+                    return false;
+            }
+        }
 
-
+        /// <summary>
+        ///  判断三角形是否为正面三角形
+        /// </summary>
+        /// <param name="v0"></param>
+        /// <param name="v1"></param>
+        /// <param name="v2"></param>
+        /// <returns></returns>
+        private bool IsFrontFace(float3 v0, float3 v1, float3 v2)
+        {
+            float3 e1 = v1 - v0;
+            float3 e2 = v2 - v0;
+            float3 normal = cross(e1, e2);
+            return normal.z < 0;
+        }
         /// <summary>
         /// 判断三角形是否为背面三角形
         /// </summary>
@@ -316,16 +355,22 @@ namespace LcLSoftRender
         /// <param name="v1"></param>
         /// <param name="v2"></param>
         /// <returns></returns>
-        private bool IsBackFace(Vertex v0, Vertex v1, Vertex v2)
+        private bool IsBackFace(float3 v0, float3 v1, float3 v2)
         {
-            float3 e1 = v1.position - v0.position;
-            float3 e2 = v2.position - v0.position;
+            float3 e1 = v1 - v0;
+            float3 e2 = v2 - v0;
             float3 normal = cross(e1, e2);
-            float3 viewDir = normalize(v0.position - Global.cameraPosition);
-            return dot(normal, viewDir) > 0;
+            return normal.z > 0;
         }
 
-
+        /// <summary>
+        /// 插值顶点属性
+        /// </summary>
+        /// <param name="v0"></param>
+        /// <param name="v1"></param>
+        /// <param name="v2"></param>
+        /// <param name="barycentric"></param>
+        /// <returns></returns>
         private VertexOutput InterpolateVertexOutputs(VertexOutput v0, VertexOutput v1, VertexOutput v2, float3 barycentric)
         {
 

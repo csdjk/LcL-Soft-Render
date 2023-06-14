@@ -29,7 +29,7 @@ namespace LcLSoftRender
         public override VertexOutput Vertex(Vertex vertex)
         {
             VertexOutput output = new UnlitVertexOutput();
-            output.positionCS = TransformTool.ModelPositionToScreenPosition(vertex.position.xyz, MatrixMVP, Global.screenSize);
+            output.positionCS = TransformTool.TransformObjectToHClip(vertex.position.xyz, MatrixMVP);
             output.uv = vertex.uv;
             return output;
         }
