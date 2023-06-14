@@ -15,6 +15,10 @@ namespace LcLSoftRender
         public RenderQueue renderQueue => shader.RenderQueue;
         public bool isTransparent => shader.RenderQueue >= RenderQueue.AlphaTest;
 
+        private float4x4 m_MatrixM;
+        public float4x4 matrixM => m_MatrixM;
+
+
         VertexBuffer m_VertexBuffer;
         public VertexBuffer vertexBuffer
         {
@@ -32,7 +36,8 @@ namespace LcLSoftRender
             }
         }
 
-        private void OnEnable() {
+        private void OnEnable()
+        {
             Init();
         }
 
@@ -65,9 +70,30 @@ namespace LcLSoftRender
             m_IndexBuffer = new IndexBuffer(indices);
         }
 
-        public float4x4 GetMatrixM()
+        void Update()
         {
-            return (float4x4)transform.localToWorldMatrix;
+            // 变化时重新计算矩阵
+            if (transform.hasChanged)
+            {
+                float4x4 translateMatrix = float4x4(1, 0, 0, transform.position.x,
+                                                               0, 1, 0, transform.position.y,
+                                                               0, 0, 1, transform.position.z,
+                                                               0, 0, 0, 1);
+
+                float4x4 scaleMatrix = float4x4(transform.lossyScale.x, 0, 0, 0,
+                                                0, transform.lossyScale.y, 0, 0,
+                                                0, 0, transform.lossyScale.z, 0,
+                                                0, 0, 0, 1);
+
+
+                // float4x4 rotationMatrix = (float4x4)Matrix4x4.Rotate(transform.rotation);
+                float4x4 rotationMatrix = TransformTool.QuaternionToMatrix(transform.rotation);
+
+                m_MatrixM = mul(translateMatrix, mul(rotationMatrix, scaleMatrix));
+                // m_MatrixM = (float4x4)transform.localToWorldMatrix;
+
+                transform.hasChanged = false;
+            }
         }
 
         public void SetShader(LcLShader shader)

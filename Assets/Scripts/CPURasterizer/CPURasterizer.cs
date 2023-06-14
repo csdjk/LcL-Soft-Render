@@ -66,9 +66,9 @@ namespace LcLSoftRender
             for (int i = 0; i < length; i++)
             {
                 RenderObject model = renderObjects[i];
-                model.shader.MatrixM = model.GetMatrixM();
+                model.shader.MatrixM = model.matrixM;
                 model.shader.MatrixVP = m_MatrixVP;
-                model.shader.MatrixMVP = CalculateMatrixMVP(model.GetMatrixM());
+                model.shader.MatrixMVP = CalculateMatrixMVP(model.matrixM);
                 DrawElements(model);
                 if (IsDebugging() && i == m_DebugIndex)
                 {

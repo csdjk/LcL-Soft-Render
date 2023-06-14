@@ -200,5 +200,40 @@ namespace LcLSoftRender
             return new float3(area0 / area, area1 / area, area2 / area);
         }
 
+
+
+        // 
+        /// <summary>
+        /// 四元数转换为旋转矩阵(https://blog.csdn.net/silangquan/article/details/50984641)
+        /// </summary>
+        /// <param name="rotation"></param>
+        /// <returns></returns>
+        public static float4x4 QuaternionToMatrix(Quaternion rotation)
+        {
+            float x = rotation.x;
+            float y = rotation.y;
+            float z = rotation.z;
+            float w = rotation.w;
+            // 模长 
+            float n = 1.0f / sqrt(x * x + y * y + z * z + w * w);
+            // 归一化,将四元数的四个分量除以它们的模长
+            x *= n;
+            y *= n;
+            z *= n;
+            w *= n;
+
+            // R = | 1 - 2y^2 - 2z^2   2xy - 2zw       2xz + 2yw       0 |
+            //     | 2xy + 2zw         1 - 2x^2 - 2z^2   2yz - 2xw       0 |
+            //     | 2xz - 2yw         2yz + 2xw        1 - 2x^2 - 2y^2  0 |
+            //     | 0                 0                0               1 |
+            float4x4 matrix = float4x4(
+                1.0f - 2.0f * y * y - 2.0f * z * z, 2.0f * x * y - 2.0f * z * w, 2.0f * x * z + 2.0f * y * w, 0.0f,
+                2.0f * x * y + 2.0f * z * w, 1.0f - 2.0f * x * x - 2.0f * z * z, 2.0f * y * z - 2.0f * x * w, 0.0f,
+                2.0f * x * z - 2.0f * y * w, 2.0f * y * z + 2.0f * x * w, 1.0f - 2.0f * x * x - 2.0f * y * y, 0.0f,
+                0.0f, 0.0f, 0.0f, 1.0f
+                );
+            return matrix;
+        }
+
     }
 }
