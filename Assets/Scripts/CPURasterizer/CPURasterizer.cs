@@ -249,9 +249,22 @@ namespace LcLSoftRender
             var vertex1 = shader.Vertex(v1);
             var vertex2 = shader.Vertex(v2);
 
+            var pos0 = vertex0.positionCS / vertex0.positionCS.w;
+            var pos1 = vertex1.positionCS / vertex0.positionCS.w;
+            var pos2 = vertex2.positionCS / vertex0.positionCS.w;
+            Debug.Log("裁剪前的三角形顶点：" + pos0 + " " + pos1 + " " + pos2);
+
+            // 裁剪三角形
+            if (!ClipTriangle(ref pos0, ref pos1, ref pos2))
+            {
+                return;
+            }
+            Debug.Log("裁剪后的三角形顶点：" + pos0 + " " + pos1 + " " + pos2);
+
             var position0 = TransformTool.ClipPositionToScreenPosition(vertex0.positionCS, m_Camera, out var ndcPos0);
             var position1 = TransformTool.ClipPositionToScreenPosition(vertex1.positionCS, m_Camera, out var ndcPos1);
             var position2 = TransformTool.ClipPositionToScreenPosition(vertex2.positionCS, m_Camera, out var ndcPos2);
+
 
             if (IsCull(ndcPos0, ndcPos1, ndcPos2, shader.CullMode)) return;
 
@@ -302,6 +315,79 @@ namespace LcLSoftRender
                     }
                 }
             }
+        }
+
+        private bool ClipTriangle(ref float4 v0, ref float4 v1, ref float4 v2)
+        {
+            // 定义三角形的顶点数组和裁剪后的顶点数组
+            float4[] vertices = new float4[] { v0, v1, v2 };
+            float4[] clippedVertices = new float4[6];
+            int numClippedVertices = 3;
+
+            // 定义六个裁剪平面，分别对应于裁剪体的左、右、下、上、近、远平面
+            float4[] planes = new float4[]
+            {
+                new float4(1, 0, 0, 1),   // 左平面
+                new float4(-1, 0, 0, 1),  // 右平面
+                new float4(0, 1, 0, 1),   // 下平面
+                new float4(0, -1, 0, 1),  // 上平面
+                new float4(0, 0, 1, 1),   // 近平面
+                new float4(0, 0, -1, 1)   // 远平面
+            };
+
+            // 对三角形进行六次裁剪，分别对应于六个裁剪平面
+            for (int i = 0; i < planes.Length; i++)
+            {
+                // 定义裁剪后的顶点数组和顶点计数器
+                int numNewVertices = 0;
+                for (int j = 0; j < numClippedVertices; j++)
+                {
+                    // 获取当前边的起点和终点
+                    float4 vj = vertices[j];
+                    float4 vk = vertices[(j + 1) % numClippedVertices];
+
+                    // 判断当前边的起点和终点是否在裁剪平面的内侧
+                    bool vjInside = dot(vj.xyz, planes[i].xyz) + planes[i].w >= 0;
+                    bool vkInside = dot(vk.xyz, planes[i].xyz) + planes[i].w >= 0;
+
+                    // 根据起点和终点的位置关系进行裁剪
+                    if (vjInside && vkInside)
+                    {
+                        // 如果起点和终点都在内侧，则将起点添加到裁剪后的顶点数组中
+                        clippedVertices[numNewVertices++] = vj;
+                    }
+                    else if (vjInside && !vkInside)
+                    {
+                        // 如果起点在内侧，终点在外侧，则计算交点并将起点和交点添加到裁剪后的顶点数组中
+                        float t = dot(planes[i], vj) / dot(planes[i], vj - vk);
+                        clippedVertices[numNewVertices++] = vj;
+                        clippedVertices[numNewVertices++] = lerp(vj, vk, t);
+                    }
+                    else if (!vjInside && vkInside)
+                    {
+                        // 如果起点在外侧，终点在内侧，则计算交点并将交点添加到裁剪后的顶点数组中
+                        float t = dot(planes[i], vj) / dot(planes[i], vj - vk);
+                        clippedVertices[numNewVertices++] = lerp(vj, vk, t);
+                    }
+                }
+
+                // 更新裁剪后的顶点数组和顶点计数器
+                numClippedVertices = numNewVertices;
+                vertices = clippedVertices;
+                clippedVertices = new float4[6];
+            }
+
+            // 如果裁剪后的顶点数组为空，则表示三角形被完全裁剪，返回 false
+            if (numClippedVertices == 0)
+            {
+                return false;
+            }
+
+            // 更新原始顶点数组为裁剪后的顶点数组，并返回 true
+            v0 = vertices[0];
+            v1 = vertices[1];
+            v2 = vertices[2];
+            return true;
         }
 
         /// <summary>

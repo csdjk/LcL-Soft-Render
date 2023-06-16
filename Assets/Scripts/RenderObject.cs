@@ -73,6 +73,7 @@ namespace LcLSoftRender
         void Update()
         {
             // 变化时重新计算矩阵
+            // https://blog.csdn.net/silangquan/article/details/50984641
             if (transform.hasChanged)
             {
                 float4x4 translateMatrix = float4x4(1, 0, 0, transform.position.x,
