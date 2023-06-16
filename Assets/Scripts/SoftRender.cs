@@ -52,10 +52,8 @@ namespace LcLSoftRender
 
         public void Init()
         {
-            var width = Screen.width;
-            var height = Screen.height;
             m_Camera = GetComponent<Camera>();
-            m_Rasterizer = new CPURasterizer(width, height, m_Camera);
+            m_Rasterizer = new CPURasterizer(m_Camera);
             CollectRenderObjects();
             DisableUnityCamera();
         }
@@ -99,8 +97,6 @@ namespace LcLSoftRender
         public void Render()
         {
             Global.ambientColor = RenderSettings.ambientLight;
-            Global.screenSize = new int2(Screen.width, Screen.height);
-            Global.cameraPosition = m_Camera.transform.position;
 
             Profiler.BeginSample("LcLSoftRender");
             {

@@ -11,9 +11,9 @@ namespace LcLSoftRender
     class CPURasterizer : IRasterizer
     {
         PrimitiveType m_PrimitiveType = PrimitiveType.Triangle;
-        private int m_Width;
-        private int m_Height;
-        private int2 m_ScreenSize;
+        // private int m_Width;
+        // private int m_Height;
+        private int2 m_ViewportSize;
         private Camera m_Camera;
         private float4x4 m_Model;
         private float4x4 m_MatrixVP;
@@ -24,13 +24,12 @@ namespace LcLSoftRender
         private LcLShader m_OverrideShader;
 
 
-        public CPURasterizer(int width, int height, Camera camera)
+        public CPURasterizer(Camera camera)
         {
-            this.m_Width = width;
-            this.m_Height = height;
-            m_ScreenSize = new int2(width, height);
-            m_FrameBuffer = new FrameBuffer(width, height);
+
+            m_FrameBuffer = new FrameBuffer(camera.pixelWidth, camera.pixelHeight);
             m_Camera = camera;
+            m_ViewportSize = new int2(camera.pixelWidth, camera.pixelHeight);
         }
 
         public Texture ColorTexture
@@ -157,10 +156,10 @@ namespace LcLSoftRender
             var vertex0 = shader.Vertex(v0);
             var vertex1 = shader.Vertex(v1);
             var vertex2 = shader.Vertex(v2);
-            var position0 = TransformTool.ClipPositionToScreenPosition(vertex0.positionCS, out var ndcPos0);
-            var position1 = TransformTool.ClipPositionToScreenPosition(vertex1.positionCS, out var ndcPos1);
-            var position2 = TransformTool.ClipPositionToScreenPosition(vertex2.positionCS, out var ndcPos2);
-            
+            var position0 = TransformTool.ClipPositionToScreenPosition(vertex0.positionCS, m_Camera, out var ndcPos0);
+            var position1 = TransformTool.ClipPositionToScreenPosition(vertex1.positionCS, m_Camera, out var ndcPos1);
+            var position2 = TransformTool.ClipPositionToScreenPosition(vertex2.positionCS, m_Camera, out var ndcPos2);
+
             if (IsCull(ndcPos0, ndcPos1, ndcPos2, shader.CullMode)) return;
 
             DrawLine(position0.xyz, position1.xyz, shader.baseColor);
@@ -250,9 +249,9 @@ namespace LcLSoftRender
             var vertex1 = shader.Vertex(v1);
             var vertex2 = shader.Vertex(v2);
 
-            var position0 = TransformTool.ClipPositionToScreenPosition(vertex0.positionCS, out var ndcPos0);
-            var position1 = TransformTool.ClipPositionToScreenPosition(vertex1.positionCS, out var ndcPos1);
-            var position2 = TransformTool.ClipPositionToScreenPosition(vertex2.positionCS, out var ndcPos2);
+            var position0 = TransformTool.ClipPositionToScreenPosition(vertex0.positionCS, m_Camera, out var ndcPos0);
+            var position1 = TransformTool.ClipPositionToScreenPosition(vertex1.positionCS, m_Camera, out var ndcPos1);
+            var position2 = TransformTool.ClipPositionToScreenPosition(vertex2.positionCS, m_Camera, out var ndcPos2);
 
             if (IsCull(ndcPos0, ndcPos1, ndcPos2, shader.CullMode)) return;
 
@@ -272,21 +271,15 @@ namespace LcLSoftRender
                     // 如果像素在三角形内，则绘制该像素
                     if (barycentric.x >= 0 && barycentric.y >= 0 && barycentric.z >= 0)
                     {
-                        // // 除以w分量(摄像机空间的Z)，以进行透视矫正
-                        // barycentric = barycentric / float3(vertex0.positionCS.w, vertex1.positionCS.w, vertex2.positionCS.w);
-                        // // 除以重心坐标的和进行归一化，以确保它们的和为1
-                        // barycentric = barycentric / (barycentric.x + barycentric.y + barycentric.z);
-
                         /// ================================ 透视矫正 ================================
                         // 推导公式:https://blog.csdn.net/Motarookie/article/details/124284471
                         // z是当前像素在摄像机空间中的深度值。
                         float z = 1 / (barycentric.x / position0.w + barycentric.y / position1.w + barycentric.z / position2.w);
-                        // 除以w分量(透视矫正系数)，以进行透视矫正
-                        // barycentric = barycentric / float3(position0.w, position1.w, position2.w) * z;
+
 
                         /// ================================ 当前像素的深度插值 ================================
                         float depth = barycentric.x * position0.z + barycentric.y * position1.z + barycentric.z * position2.z;
-                        depth *= z;
+                        // depth *= z;
 
                         var depthBuffer = m_FrameBuffer.GetDepth(x, y);
                         // 深度测试
