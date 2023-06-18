@@ -38,6 +38,9 @@ namespace LcLSoftRender
         public RasterizerType RasterizerType = RasterizerType.CPU;
         public Color clearColor = Color.black;
         public PrimitiveType primitiveType = PrimitiveType.Triangle;
+        private int m_FrameCount = 0;
+        public int m_FrameInterval = 2;
+
         Camera m_Camera;
         CPURasterizer m_Rasterizer;
         List<RenderObject> m_RenderObjects = new List<RenderObject>();
@@ -80,8 +83,7 @@ namespace LcLSoftRender
         }
 
 
-        private int m_FrameCount = 0;
-        public int m_FrameInterval = 2;
+
 
         private void Update()
         {

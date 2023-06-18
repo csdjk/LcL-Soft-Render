@@ -47,11 +47,13 @@ namespace LcLSoftRender
 
         public void SetColor(int x, int y, Color color)
         {
-            if (GetIndex(x, y) >= m_ColorBuffer.Length || GetIndex(x, y) < 0)
+            var index = GetIndex(x, y);
+            if (index >= m_ColorBuffer.Length || index < 0)
             {
+                Debug.Log(index);
                 Debug.Log("2");
             }
-            m_ColorBuffer[GetIndex(x, y)] = color;
+            m_ColorBuffer[index] = color;
         }
         public void SetColor(int x, int y, float4 color)
         {

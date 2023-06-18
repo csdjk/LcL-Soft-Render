@@ -123,6 +123,116 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1001 &369844052
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    m_TransformParent: {fileID: 963194228}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 4fff4f268b076c04d97c39dc72b37470, type: 3}
+      propertyPath: m_RootOrder
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 4fff4f268b076c04d97c39dc72b37470, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1.7423
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 4fff4f268b076c04d97c39dc72b37470, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1.862
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 4fff4f268b076c04d97c39dc72b37470, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.514
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 4fff4f268b076c04d97c39dc72b37470, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.194
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 4fff4f268b076c04d97c39dc72b37470, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 4fff4f268b076c04d97c39dc72b37470, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 4fff4f268b076c04d97c39dc72b37470, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 4fff4f268b076c04d97c39dc72b37470, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 4fff4f268b076c04d97c39dc72b37470, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 4fff4f268b076c04d97c39dc72b37470, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 4fff4f268b076c04d97c39dc72b37470, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: -90
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 4fff4f268b076c04d97c39dc72b37470, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 90
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 4fff4f268b076c04d97c39dc72b37470, type: 3}
+      propertyPath: m_Name
+      value: triangle
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 4fff4f268b076c04d97c39dc72b37470, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 4fff4f268b076c04d97c39dc72b37470, type: 3}
+--- !u!1 &369844053 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 4fff4f268b076c04d97c39dc72b37470, type: 3}
+  m_PrefabInstance: {fileID: 369844052}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &369844054
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 369844053}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2bac71971b8c5f040a4a07e9fb30f524, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  shader:
+    rid: 2432619286533767168
+  debug: 1
+  showPositionOS: 0
+  showPositionWS: 0
+  showUV: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 2432619286533767168
+      type: {class: UnlitShader, ns: LcLSoftRender, asm: Assembly-CSharp}
+      data:
+        m_RenderQueue: 2000
+        m_ZWrite: 1
+        m_ZTest: 4
+        m_CullMode: 2
+        m_BlendMode: 0
+        baseColor: {r: 1, g: 1, b: 1, a: 1}
+        mainTexture: {fileID: 0}
+--- !u!4 &369844057 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 4fff4f268b076c04d97c39dc72b37470, type: 3}
+  m_PrefabInstance: {fileID: 369844052}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &370697029
 GameObject:
   m_ObjectHideFlags: 0
@@ -157,6 +267,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   shader:
     rid: 2432619151228141575
+  debug: 0
+  showPositionOS: 0
+  showPositionWS: 0
+  showUV: 0
   references:
     version: 2
     RefIds:
@@ -362,6 +476,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   shader:
     rid: 2432619151228141576
+  debug: 0
+  showPositionOS: 0
+  showPositionWS: 0
+  showUV: 0
   references:
     version: 2
     RefIds:
@@ -394,7 +512,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &466726935
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -409,6 +527,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   shader:
     rid: 5281816736761118720
+  debug: 0
+  showPositionOS: 0
+  showPositionWS: 0
+  showUV: 0
   references:
     version: 2
     RefIds:
@@ -535,6 +657,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   shader:
     rid: 2432619151228141575
+  debug: 0
+  showPositionOS: 0
+  showPositionWS: 0
+  showUV: 0
   references:
     version: 2
     RefIds:
@@ -780,7 +906,7 @@ Camera:
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
-    m_Bits: 1
+    m_Bits: 0
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
@@ -803,7 +929,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 369844057}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -821,7 +948,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   RasterizerType: 0
   clearColor: {r: 0, g: 0, b: 0, a: 1}
-  primitiveType: 0
+  primitiveType: 1
   m_FrameInterval: 1
 --- !u!114 &963194230
 MonoBehaviour:
@@ -905,6 +1032,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   shader:
     rid: 2432619151228141582
+  debug: 0
+  showPositionOS: 0
+  showPositionWS: 0
+  showUV: 0
   references:
     version: 2
     RefIds:
@@ -1031,6 +1162,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   shader:
     rid: 2432619151228141575
+  debug: 0
+  showPositionOS: 0
+  showPositionWS: 0
+  showUV: 0
   references:
     version: 2
     RefIds:
@@ -1157,6 +1292,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   shader:
     rid: 2432619151228141575
+  debug: 0
+  showPositionOS: 0
+  showPositionWS: 0
+  showUV: 0
   references:
     version: 2
     RefIds:

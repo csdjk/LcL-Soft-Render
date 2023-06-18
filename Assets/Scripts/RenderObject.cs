@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Mathematics;
 using static Unity.Mathematics.math;
+using UnityEditor;
 
 namespace LcLSoftRender
 {
@@ -50,20 +51,21 @@ namespace LcLSoftRender
             var normals = mesh.normals;
             var tangents = mesh.tangents;
             var colors = mesh.colors;
+            var haveUV = uvs.Length > 0;
 
             Vertex[] mVertices = new Vertex[vertices.Length];
             if (colors.Length > 0)
             {
                 for (int i = 0; i < mVertices.Length; i++)
                 {
-                    mVertices[i] = new Vertex(vertices[i], uvs[i], normals[i], tangents[i], colors[i]);
+                    mVertices[i] = new Vertex(vertices[i], haveUV ? uvs[i] : 0, normals[i], tangents[i], colors[i]);
                 }
             }
             else
             {
                 for (int i = 0; i < mVertices.Length; i++)
                 {
-                    mVertices[i] = new Vertex(vertices[i], uvs[i], normals[i], tangents[i], Color.black);
+                    mVertices[i] = new Vertex(vertices[i], haveUV ? uvs[i] : 0, normals[i], tangents[i], Color.black);
                 }
             }
             m_VertexBuffer = new VertexBuffer(mVertices);
@@ -86,7 +88,6 @@ namespace LcLSoftRender
                                                 0, 0, transform.lossyScale.z, 0,
                                                 0, 0, 0, 1);
 
-
                 // float4x4 rotationMatrix = (float4x4)Matrix4x4.Rotate(transform.rotation);
                 float4x4 rotationMatrix = TransformTool.QuaternionToMatrix(transform.rotation);
 
@@ -101,5 +102,50 @@ namespace LcLSoftRender
         {
             this.shader = shader;
         }
+
+
+        #region Debug
+        public bool debug = false;
+        public bool showPositionOS = true;
+        public bool showPositionWS = true;
+        public bool showUV = true;
+        GUIStyle style = new GUIStyle();
+        private void OnDrawGizmos()
+        {
+            if (!debug) return;
+
+            style.normal.textColor = Color.green;
+            style.fontSize = 20;
+            // 在每个顶点处画一个label, 显示顶点的索引以及坐标
+            if (vertexBuffer != null)
+            {
+                for (int i = 0; i < vertexBuffer.Length; i++)
+                {
+                    var positionOS = vertexBuffer[i].position;
+                    var positionWS = mul(matrixM, float4(positionOS, 1)).xyz;
+                    // 四舍五入positionWS, 保留两位小数
+                    positionWS = round(positionWS * 100) / 100;
+
+                    var uv = vertexBuffer[i].uv;
+                    uv = round(uv * 100) / 100;
+
+                    var debugStr = i.ToString();
+                    // if (showPositionOS)
+                    {
+                        debugStr += $"\nOS({positionOS.x},{positionOS.y},{positionOS.z})";
+                    }
+                    // if (showPositionWS)
+                    {
+                        debugStr += $"\nWS({positionWS.x},{positionWS.y},{positionWS.z})";
+                    }
+                    // if (showUV)
+                    {
+                        debugStr += $"\nuv({uv.x},{uv.y})";
+                    }
+                    Handles.Label(positionWS, debugStr, style);
+                }
+            }
+        }
+        #endregion
     }
 }

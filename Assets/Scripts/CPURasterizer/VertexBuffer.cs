@@ -7,7 +7,6 @@ namespace LcLSoftRender
     public class VertexBuffer
     {
         private List<Vertex> m_Vertex = new List<Vertex>();
-
         public VertexBuffer(IEnumerable<Vertex> vertices)
         {
             m_Vertex.AddRange(vertices);
@@ -17,10 +16,12 @@ namespace LcLSoftRender
             m_Vertex.AddRange(vertices);
         }
 
+        public int Length => m_Vertex.Count;
         public Vertex this[int i]
         {
             get { return m_Vertex[i]; }
         }
+
 
         public int Count()
         {

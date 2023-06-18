@@ -5,24 +5,20 @@ using System.Reflection;
 using System;
 using Unity.Mathematics;
 using static Unity.Mathematics.math;
+using System.Linq;
 
 namespace LcLSoftRender
 {
     class CPURasterizer : IRasterizer
     {
         PrimitiveType m_PrimitiveType = PrimitiveType.Triangle;
-        // private int m_Width;
-        // private int m_Height;
         private int2 m_ViewportSize;
         private Camera m_Camera;
         private float4x4 m_Model;
         private float4x4 m_MatrixVP;
         private float4x4 m_MatrixMVP;
         private FrameBuffer m_FrameBuffer;
-        // private List<VertexBuffer> m_VertexBuffers = new List<VertexBuffer>();
-        // private List<IndexBuffer> m_IndexBuffers = new List<IndexBuffer>();
         private LcLShader m_OverrideShader;
-
 
         public CPURasterizer(Camera camera)
         {
@@ -103,31 +99,10 @@ namespace LcLSoftRender
         }
 
         /// <summary>
-        /// 绘制
+        /// 绘制图元
         /// </summary>
         /// <param name="model"></param>
         public void DrawElements(RenderObject model)
-        {
-            switch (m_PrimitiveType)
-            {
-                case PrimitiveType.Line:
-                    DrawWireFrame(model);
-                    break;
-                case PrimitiveType.Triangle:
-                    DrawTriangles(model);
-                    break;
-            }
-
-            m_FrameBuffer.Apply();
-        }
-
-        #region DrawWireFrame
-
-        /// <summary>
-        /// 绘制线框
-        /// </summary>
-        /// <param name="model"></param>
-        private void DrawWireFrame(RenderObject model)
         {
             if (model == null) return;
 
@@ -140,25 +115,69 @@ namespace LcLSoftRender
                 Vertex v1 = vertexBuffer[indexBuffer[i + 1]];
                 Vertex v2 = vertexBuffer[indexBuffer[i + 2]];
 
-                WireFrameTriangle(v0, v1, v2, shader);
+                var vertex0 = shader.Vertex(v0);
+                var vertex1 = shader.Vertex(v1);
+                var vertex2 = shader.Vertex(v2);
+
+                // 裁剪三角形
+                if (!ClipTriangle(vertex0, vertex1, vertex2, out var clippedVertices))
+                {
+                    return;
+                }
+
+                Debug.Log("clippedVertices.Count:" + clippedVertices.Count);
+                // 绘制裁剪后的三角形
+                for (int j = 1; j < clippedVertices.Count - 1; j++)
+                {
+                    Debug.Log($"-----{j}-----");
+                    Debug.Log($"{clippedVertices[0].positionCS}");
+                    Debug.Log($"{clippedVertices[j].positionCS}");
+                    Debug.Log($"{clippedVertices[j + 1].positionCS}");
+                   
+                    switch (m_PrimitiveType)
+                    {
+                        case PrimitiveType.Line:
+                            WireFrameTriangle(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1], shader);
+                            break;
+                        case PrimitiveType.Triangle:
+                            RasterizeTriangle(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1], shader);
+                            break;
+                    }
+                }
+
             }
+            // switch (m_PrimitiveType)
+            // {
+            //     case PrimitiveType.Line:
+            //         DrawWireFrame(model);
+            //         break;
+            //     case PrimitiveType.Triangle:
+            //         DrawTriangles(model);
+            //         break;
+            // }
+
+            m_FrameBuffer.Apply();
         }
+
+        #region DrawWireFrame
 
         /// <summary>
         /// 绘制线框三角形
         /// </summary>
-        /// <param name="v0"></param>
-        /// <param name="v1"></param>
-        /// <param name="v2"></param>
-        /// <param name="color"></param>
-        private void WireFrameTriangle(Vertex v0, Vertex v1, Vertex v2, LcLShader shader)
+        /// <param name="vertex0"></param>
+        /// <param name="vertex1"></param>
+        /// <param name="vertex2"></param>
+        /// <param name="shader"></param>
+        private void WireFrameTriangle(VertexOutput vertex0, VertexOutput vertex1, VertexOutput vertex2, LcLShader shader)
         {
-            var vertex0 = shader.Vertex(v0);
-            var vertex1 = shader.Vertex(v1);
-            var vertex2 = shader.Vertex(v2);
-            var position0 = TransformTool.ClipPositionToScreenPosition(vertex0.positionCS, m_Camera, out var ndcPos0);
-            var position1 = TransformTool.ClipPositionToScreenPosition(vertex1.positionCS, m_Camera, out var ndcPos1);
-            var position2 = TransformTool.ClipPositionToScreenPosition(vertex2.positionCS, m_Camera, out var ndcPos2);
+            var pos0 = vertex0.positionCS / vertex0.positionCS.w;
+            var pos1 = vertex1.positionCS / vertex0.positionCS.w;
+            var pos2 = vertex2.positionCS / vertex0.positionCS.w;
+
+            var position0 = TransformTool.ClipPositionToScreenPosition(pos0, m_Camera, out var ndcPos0);
+            var position1 = TransformTool.ClipPositionToScreenPosition(pos1, m_Camera, out var ndcPos1);
+            var position2 = TransformTool.ClipPositionToScreenPosition(pos2, m_Camera, out var ndcPos2);
+
 
             if (IsCull(ndcPos0, ndcPos1, ndcPos2, shader.CullMode)) return;
 
@@ -216,51 +235,111 @@ namespace LcLSoftRender
 
         #region DrawTriangles
 
-
-        /// <summary>
-        /// 绘制三角形
-        /// </summary>
-        private void DrawTriangles(RenderObject model)
+        // 定义六个裁剪平面，分别对应于裁剪体的左、右、下、上、近、远平面
+        float4[] planes = new float4[]
         {
-            if (model == null) return;
+                new float4(1, 0, 0, 1),   // 左平面
+                new float4(-1, 0, 0, 1),  // 右平面
+                new float4(0, 1, 0, 1),   // 下平面
+                new float4(0, -1, 0, 1),  // 上平面
+                new float4(0, 0, 1, 1),   // 近平面
+                new float4(0, 0, -1, 1)   // 远平面
+        };
 
-            var vertexBuffer = model.vertexBuffer;
-            var indexBuffer = model.indexBuffer;
-            var shader = model.shader;
-            for (int i = 0; i < indexBuffer.Count(); i += 3)
+        bool ClipTriangle(VertexOutput vertex0, VertexOutput vertex1, VertexOutput vertex2, out List<VertexOutput> vertices)
+        {
+            // 定义三角形的顶点列表和裁剪后的顶点列表
+            vertices = new List<VertexOutput> { vertex0, vertex1, vertex2 };
+            var clippedVertices = new List<VertexOutput>();
+            int numClippedVertices = 3;
+            // return true;
+            // 对三角形进行六次裁剪，分别对应于六个裁剪平面
+            for (int i = 0; i < planes.Length; i++)
             {
-                Vertex v0 = vertexBuffer[indexBuffer[i + 0]];
-                Vertex v1 = vertexBuffer[indexBuffer[i + 1]];
-                Vertex v2 = vertexBuffer[indexBuffer[i + 2]];
-                RasterizeTriangle(v0, v1, v2, shader);
+                // 定义裁剪后的顶点列表
+                clippedVertices.Clear();
+
+                // 对顶点列表进行裁剪
+                for (int j = 0; j < numClippedVertices; j++)
+                {
+                    // 获取当前边的起点和终点
+                    var vj = vertices[j];
+                    var vk = vertices[(j + 1) % numClippedVertices];
+
+                    // 判断当前边的起点和终点是否在裁剪平面的内侧
+                    bool vjInside = dot(vj.positionCS.xyz, planes[i].xyz) + planes[i].w >= 0;
+                    bool vkInside = dot(vk.positionCS.xyz, planes[i].xyz) + planes[i].w >= 0;
+
+                    // 根据起点和终点的位置关系进行裁剪
+                    if (vjInside && vkInside)
+                    {
+                        // 如果起点和终点都在内侧，则将起点添加到裁剪后的顶点列表中
+                        clippedVertices.Add(vj);
+                    }
+                    else if (vjInside && !vkInside)
+                    {
+                        // 如果起点在内侧，终点在外侧，则计算交点并将起点和交点添加到裁剪后的顶点列表中
+                        float t = dot(planes[i], vj.positionCS) / dot(planes[i], vj.positionCS - vk.positionCS);
+                        clippedVertices.Add(vj);
+                        clippedVertices.Add(InterpolateVertexOutputs(vj, vk, t));
+                    }
+                    else if (!vjInside && vkInside)
+                    {
+                        // 如果起点在外侧，终点在内侧，则计算交点并将交点添加到裁剪后的顶点列表中
+                        float t = dot(planes[i], vj.positionCS) / dot(planes[i], vj.positionCS - vk.positionCS);
+                        clippedVertices.Add(InterpolateVertexOutputs(vj, vk, t));
+                    }
+                }
+
+                // 更新裁剪后的顶点列表和顶点计数器
+                numClippedVertices = clippedVertices.Count;
+                vertices = clippedVertices.ToList();
             }
+
+            // 如果裁剪后的顶点列表为空，则表示三角形被完全裁剪，返回 false
+            if (numClippedVertices == 0)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        // 定义一个插值函数，用于在两个顶点之间进行插值，生成一个新的顶点
+        VertexOutput InterpolateVertexOutputs(VertexOutput start, VertexOutput end, float t)
+        {
+            var result = (VertexOutput)Activator.CreateInstance(start.GetType());
+
+            // 对每个顶点属性进行插值
+            result.positionCS = lerp(start.positionCS, end.positionCS, t);
+            result.normal = lerp(start.normal, end.normal, t);
+            result.tangent = lerp(start.tangent, end.tangent, t);
+            result.color = lerp(start.color, end.color, t);
+            result.uv = lerp(start.uv, end.uv, t);
+
+            // 返回插值后的顶点
+            return result;
+        }
+
+
+        private bool IsInsidePlane(float4 plane, float4 vertex)
+        {
+            return dot(plane, vertex) <= 0;
+        }
+
+        private float GetIntersectRatio(float4 prev, float4 curv, float4 plane)
+        {
+            float t = dot(plane, prev) / dot(plane, prev - curv);
+            return t;
         }
 
         /// <summary>
         /// 三角形光栅化(重心坐标法)
         /// </summary>
-        /// <param name="v0"></param>
-        /// <param name="v1"></param>
-        /// <param name="v2"></param>
-        private void RasterizeTriangle(Vertex v0, Vertex v1, Vertex v2, LcLShader shader)
+        /// <param name="vertex0"></param>
+        /// <param name="vertex1"></param>
+        /// <param name="vertex2"></param>
+        private void RasterizeTriangle(VertexOutput vertex0, VertexOutput vertex1, VertexOutput vertex2, LcLShader shader)
         {
-
-            var vertex0 = shader.Vertex(v0);
-            var vertex1 = shader.Vertex(v1);
-            var vertex2 = shader.Vertex(v2);
-
-            var pos0 = vertex0.positionCS / vertex0.positionCS.w;
-            var pos1 = vertex1.positionCS / vertex0.positionCS.w;
-            var pos2 = vertex2.positionCS / vertex0.positionCS.w;
-            Debug.Log("裁剪前的三角形顶点：" + pos0 + " " + pos1 + " " + pos2);
-
-            // 裁剪三角形
-            if (!ClipTriangle(ref pos0, ref pos1, ref pos2))
-            {
-                return;
-            }
-            Debug.Log("裁剪后的三角形顶点：" + pos0 + " " + pos1 + " " + pos2);
-
             var position0 = TransformTool.ClipPositionToScreenPosition(vertex0.positionCS, m_Camera, out var ndcPos0);
             var position1 = TransformTool.ClipPositionToScreenPosition(vertex1.positionCS, m_Camera, out var ndcPos1);
             var position2 = TransformTool.ClipPositionToScreenPosition(vertex2.positionCS, m_Camera, out var ndcPos2);
@@ -287,6 +366,7 @@ namespace LcLSoftRender
                         /// ================================ 透视矫正 ================================
                         // 推导公式:https://blog.csdn.net/Motarookie/article/details/124284471
                         // z是当前像素在摄像机空间中的深度值。
+                        // 插值校正系数
                         float z = 1 / (barycentric.x / position0.w + barycentric.y / position1.w + barycentric.z / position2.w);
 
 
@@ -317,78 +397,8 @@ namespace LcLSoftRender
             }
         }
 
-        private bool ClipTriangle(ref float4 v0, ref float4 v1, ref float4 v2)
-        {
-            // 定义三角形的顶点数组和裁剪后的顶点数组
-            float4[] vertices = new float4[] { v0, v1, v2 };
-            float4[] clippedVertices = new float4[6];
-            int numClippedVertices = 3;
 
-            // 定义六个裁剪平面，分别对应于裁剪体的左、右、下、上、近、远平面
-            float4[] planes = new float4[]
-            {
-                new float4(1, 0, 0, 1),   // 左平面
-                new float4(-1, 0, 0, 1),  // 右平面
-                new float4(0, 1, 0, 1),   // 下平面
-                new float4(0, -1, 0, 1),  // 上平面
-                new float4(0, 0, 1, 1),   // 近平面
-                new float4(0, 0, -1, 1)   // 远平面
-            };
 
-            // 对三角形进行六次裁剪，分别对应于六个裁剪平面
-            for (int i = 0; i < planes.Length; i++)
-            {
-                // 定义裁剪后的顶点数组和顶点计数器
-                int numNewVertices = 0;
-                for (int j = 0; j < numClippedVertices; j++)
-                {
-                    // 获取当前边的起点和终点
-                    float4 vj = vertices[j];
-                    float4 vk = vertices[(j + 1) % numClippedVertices];
-
-                    // 判断当前边的起点和终点是否在裁剪平面的内侧
-                    bool vjInside = dot(vj.xyz, planes[i].xyz) + planes[i].w >= 0;
-                    bool vkInside = dot(vk.xyz, planes[i].xyz) + planes[i].w >= 0;
-
-                    // 根据起点和终点的位置关系进行裁剪
-                    if (vjInside && vkInside)
-                    {
-                        // 如果起点和终点都在内侧，则将起点添加到裁剪后的顶点数组中
-                        clippedVertices[numNewVertices++] = vj;
-                    }
-                    else if (vjInside && !vkInside)
-                    {
-                        // 如果起点在内侧，终点在外侧，则计算交点并将起点和交点添加到裁剪后的顶点数组中
-                        float t = dot(planes[i], vj) / dot(planes[i], vj - vk);
-                        clippedVertices[numNewVertices++] = vj;
-                        clippedVertices[numNewVertices++] = lerp(vj, vk, t);
-                    }
-                    else if (!vjInside && vkInside)
-                    {
-                        // 如果起点在外侧，终点在内侧，则计算交点并将交点添加到裁剪后的顶点数组中
-                        float t = dot(planes[i], vj) / dot(planes[i], vj - vk);
-                        clippedVertices[numNewVertices++] = lerp(vj, vk, t);
-                    }
-                }
-
-                // 更新裁剪后的顶点数组和顶点计数器
-                numClippedVertices = numNewVertices;
-                vertices = clippedVertices;
-                clippedVertices = new float4[6];
-            }
-
-            // 如果裁剪后的顶点数组为空，则表示三角形被完全裁剪，返回 false
-            if (numClippedVertices == 0)
-            {
-                return false;
-            }
-
-            // 更新原始顶点数组为裁剪后的顶点数组，并返回 true
-            v0 = vertices[0];
-            v1 = vertices[1];
-            v2 = vertices[2];
-            return true;
-        }
 
         /// <summary>
         /// 背面剔除
@@ -554,6 +564,9 @@ namespace LcLSoftRender
             return m_DebugIndex != -1;
         }
         #endregion
+
+
+
 
     }
 }

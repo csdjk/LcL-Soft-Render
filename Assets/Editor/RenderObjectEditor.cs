@@ -12,6 +12,7 @@ namespace LcLSoftRender
     {
         bool showShaderBaseProp = true;
         SerializedProperty shaderProp;
+        SerializedProperty debugProp;
         string[] shaderNames;
         IEnumerable<System.Type> shaderTypes;
         // static Dictionary<RenderObject, Dictionary<string, LcLShader>> ShaderDictGlobal = new Dictionary<RenderObject, Dictionary<string, LcLShader>>();
@@ -19,6 +20,7 @@ namespace LcLSoftRender
         private void OnEnable()
         {
             shaderProp = serializedObject.FindProperty("shader");
+            debugProp = serializedObject.FindProperty("debug");
 
             InitShaderList();
         }
@@ -107,6 +109,15 @@ namespace LcLSoftRender
 
 
             EditorGUILayout.PropertyField(shaderProp, new GUIContent("Shader Property"), true);
+
+
+            debugProp.boolValue = EditorGUILayout.Toggle("Debug", debugProp.boolValue);
+            // debugProp.boolValue = EditorGUILayout.Foldout(debugProp.boolValue, "Debug");
+            // if (debugProp.boolValue)
+            // {
+
+            // }
+
 
             serializedObject.ApplyModifiedProperties();
         }
