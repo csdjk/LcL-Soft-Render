@@ -44,6 +44,8 @@ namespace LcLSoftRender
 
         public void Init()
         {
+            CalculateMatrix();
+
             var mesh = GetComponent<MeshFilter>()?.sharedMesh;
             var vertices = mesh.vertices;
             var indices = mesh.triangles;
@@ -75,27 +77,34 @@ namespace LcLSoftRender
         void Update()
         {
             // 变化时重新计算矩阵
-            // https://blog.csdn.net/silangquan/article/details/50984641
             if (transform.hasChanged)
             {
-                float4x4 translateMatrix = float4x4(1, 0, 0, transform.position.x,
-                                                               0, 1, 0, transform.position.y,
-                                                               0, 0, 1, transform.position.z,
-                                                               0, 0, 0, 1);
-
-                float4x4 scaleMatrix = float4x4(transform.lossyScale.x, 0, 0, 0,
-                                                0, transform.lossyScale.y, 0, 0,
-                                                0, 0, transform.lossyScale.z, 0,
-                                                0, 0, 0, 1);
-
-                // float4x4 rotationMatrix = (float4x4)Matrix4x4.Rotate(transform.rotation);
-                float4x4 rotationMatrix = TransformTool.QuaternionToMatrix(transform.rotation);
-
-                m_MatrixM = mul(translateMatrix, mul(rotationMatrix, scaleMatrix));
-                // m_MatrixM = (float4x4)transform.localToWorldMatrix;
-
+                CalculateMatrix();
                 transform.hasChanged = false;
             }
+        }
+
+        /// <summary>
+        /// 计算M矩阵
+        /// https://blog.csdn.net/silangquan/article/details/50984641
+        /// </summary>
+        void CalculateMatrix()
+        {
+            float4x4 translateMatrix = float4x4(1, 0, 0, transform.position.x,
+                                                                        0, 1, 0, transform.position.y,
+                                                                        0, 0, 1, transform.position.z,
+                                                                        0, 0, 0, 1);
+
+            float4x4 scaleMatrix = float4x4(transform.lossyScale.x, 0, 0, 0,
+                                            0, transform.lossyScale.y, 0, 0,
+                                            0, 0, transform.lossyScale.z, 0,
+                                            0, 0, 0, 1);
+
+            // float4x4 rotationMatrix = (float4x4)Matrix4x4.Rotate(transform.rotation);
+            float4x4 rotationMatrix = TransformTool.QuaternionToMatrix(transform.rotation);
+
+            m_MatrixM = mul(translateMatrix, mul(rotationMatrix, scaleMatrix));
+            // m_MatrixM = (float4x4)transform.localToWorldMatrix;
         }
 
         public void SetShader(LcLShader shader)
@@ -114,35 +123,49 @@ namespace LcLSoftRender
         {
             if (!debug) return;
 
-            style.normal.textColor = Color.green;
-            style.fontSize = 20;
+            style.normal.textColor = Color.green * 0.8f;
+            style.fontSize = 15;
             // 在每个顶点处画一个label, 显示顶点的索引以及坐标
             if (vertexBuffer != null)
             {
                 for (int i = 0; i < vertexBuffer.Length; i++)
                 {
-                    var positionOS = vertexBuffer[i].position;
-                    var positionWS = mul(matrixM, float4(positionOS, 1)).xyz;
-                    // 四舍五入positionWS, 保留两位小数
-                    positionWS = round(positionWS * 100) / 100;
-
-                    var uv = vertexBuffer[i].uv;
-                    uv = round(uv * 100) / 100;
-
                     var debugStr = i.ToString();
+                    var positionOS = vertexBuffer[i].position;
+                    var positionWS = mul(matrixM, float4(positionOS, 1));
+                    var uv = vertexBuffer[i].uv;
+
                     // if (showPositionOS)
                     {
-                        debugStr += $"\nOS({positionOS.x},{positionOS.y},{positionOS.z})";
+                        // 四舍五入positionWS, 保留两位小数
+                        var posOS = round(positionOS * 100) / 100;
+                        debugStr += $"\nOS({posOS.x},{posOS.y},{posOS.z})";
                     }
                     // if (showPositionWS)
                     {
-                        debugStr += $"\nWS({positionWS.x},{positionWS.y},{positionWS.z})";
+                        var posWS = round(positionWS * 100) / 100;
+                        debugStr += $"\nWS({posWS.x},{posWS.y},{posWS.z})";
                     }
+
+                    if (SoftRender.instance.rasterizer != null)
+                    {
+                        var rasterizer = SoftRender.instance.rasterizer;
+                        var positionCS = mul(rasterizer.MatrixVP, positionWS);
+                        var ndc = positionCS.xyz / positionCS.w;
+
+                        positionCS = round(positionCS * 100) / 100;
+                        debugStr += $"\nCS({positionCS.x},{positionCS.y},{positionCS.z},{positionCS.w})";
+
+                        ndc = round(ndc * 100) / 100;
+                        debugStr += $"\nNDC({ndc.x},{ndc.y},{ndc.z})";
+                    }
+
                     // if (showUV)
                     {
+                        uv = round(uv * 100) / 100;
                         debugStr += $"\nuv({uv.x},{uv.y})";
                     }
-                    Handles.Label(positionWS, debugStr, style);
+                    Handles.Label(positionWS.xyz, debugStr, style);
                 }
             }
         }

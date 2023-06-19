@@ -9,14 +9,16 @@ using System.Linq;
 
 namespace LcLSoftRender
 {
-    class CPURasterizer : IRasterizer
+    public class CPURasterizer : IRasterizer
     {
         PrimitiveType m_PrimitiveType = PrimitiveType.Triangle;
         private int2 m_ViewportSize;
         private Camera m_Camera;
         private float4x4 m_Model;
         private float4x4 m_MatrixVP;
+        public float4x4 MatrixVP => m_MatrixVP;
         private float4x4 m_MatrixMVP;
+        public float4x4 MatrixMVP => m_MatrixMVP;
         private FrameBuffer m_FrameBuffer;
         private LcLShader m_OverrideShader;
 
@@ -125,15 +127,9 @@ namespace LcLSoftRender
                     return;
                 }
 
-                Debug.Log("clippedVertices.Count:" + clippedVertices.Count);
                 // 绘制裁剪后的三角形
                 for (int j = 1; j < clippedVertices.Count - 1; j++)
                 {
-                    Debug.Log($"-----{j}-----");
-                    Debug.Log($"{clippedVertices[0].positionCS}");
-                    Debug.Log($"{clippedVertices[j].positionCS}");
-                    Debug.Log($"{clippedVertices[j + 1].positionCS}");
-                   
                     switch (m_PrimitiveType)
                     {
                         case PrimitiveType.Line:
@@ -146,16 +142,6 @@ namespace LcLSoftRender
                 }
 
             }
-            // switch (m_PrimitiveType)
-            // {
-            //     case PrimitiveType.Line:
-            //         DrawWireFrame(model);
-            //         break;
-            //     case PrimitiveType.Triangle:
-            //         DrawTriangles(model);
-            //         break;
-            // }
-
             m_FrameBuffer.Apply();
         }
 
@@ -170,14 +156,9 @@ namespace LcLSoftRender
         /// <param name="shader"></param>
         private void WireFrameTriangle(VertexOutput vertex0, VertexOutput vertex1, VertexOutput vertex2, LcLShader shader)
         {
-            var pos0 = vertex0.positionCS / vertex0.positionCS.w;
-            var pos1 = vertex1.positionCS / vertex0.positionCS.w;
-            var pos2 = vertex2.positionCS / vertex0.positionCS.w;
-
-            var position0 = TransformTool.ClipPositionToScreenPosition(pos0, m_Camera, out var ndcPos0);
-            var position1 = TransformTool.ClipPositionToScreenPosition(pos1, m_Camera, out var ndcPos1);
-            var position2 = TransformTool.ClipPositionToScreenPosition(pos2, m_Camera, out var ndcPos2);
-
+            var position0 = TransformTool.ClipPositionToScreenPosition(vertex0.positionCS, m_Camera, out var ndcPos0);
+            var position1 = TransformTool.ClipPositionToScreenPosition(vertex1.positionCS, m_Camera, out var ndcPos1);
+            var position2 = TransformTool.ClipPositionToScreenPosition(vertex2.positionCS, m_Camera, out var ndcPos2);
 
             if (IsCull(ndcPos0, ndcPos1, ndcPos2, shader.CullMode)) return;
 
@@ -236,6 +217,7 @@ namespace LcLSoftRender
         #region DrawTriangles
 
         // 定义六个裁剪平面，分别对应于裁剪体的左、右、下、上、近、远平面
+        // 在Unity中，裁剪平面的法向量正方向通常指向视锥体的内部
         float4[] planes = new float4[]
         {
                 new float4(1, 0, 0, 1),   // 左平面
@@ -246,17 +228,27 @@ namespace LcLSoftRender
                 new float4(0, 0, -1, 1)   // 远平面
         };
 
+
+        /// <summary>
+        /// 裁剪三角形(Sutherland-Hodgman)
+        /// https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm
+        /// </summary>
+        /// <param name="vertex0"></param>
+        /// <param name="vertex1"></param>
+        /// <param name="vertex2"></param>
+        /// <param name="vertices"></param>
+        /// <returns></returns>
         bool ClipTriangle(VertexOutput vertex0, VertexOutput vertex1, VertexOutput vertex2, out List<VertexOutput> vertices)
         {
             // 定义三角形的顶点列表和裁剪后的顶点列表
             vertices = new List<VertexOutput> { vertex0, vertex1, vertex2 };
             var clippedVertices = new List<VertexOutput>();
             int numClippedVertices = 3;
-            // return true;
+
             // 对三角形进行六次裁剪，分别对应于六个裁剪平面
             for (int i = 0; i < planes.Length; i++)
             {
-                // 定义裁剪后的顶点列表
+                // 裁剪后的顶点列表
                 clippedVertices.Clear();
 
                 // 对顶点列表进行裁剪
@@ -267,8 +259,8 @@ namespace LcLSoftRender
                     var vk = vertices[(j + 1) % numClippedVertices];
 
                     // 判断当前边的起点和终点是否在裁剪平面的内侧
-                    bool vjInside = dot(vj.positionCS.xyz, planes[i].xyz) + planes[i].w >= 0;
-                    bool vkInside = dot(vk.positionCS.xyz, planes[i].xyz) + planes[i].w >= 0;
+                    bool vjInside = IsInsidePlane(planes[i], vj.positionCS);
+                    bool vkInside = IsInsidePlane(planes[i], vk.positionCS);
 
                     // 根据起点和终点的位置关系进行裁剪
                     if (vjInside && vkInside)
@@ -308,29 +300,40 @@ namespace LcLSoftRender
         VertexOutput InterpolateVertexOutputs(VertexOutput start, VertexOutput end, float t)
         {
             var result = (VertexOutput)Activator.CreateInstance(start.GetType());
-
             // 对每个顶点属性进行插值
             result.positionCS = lerp(start.positionCS, end.positionCS, t);
             result.normal = lerp(start.normal, end.normal, t);
             result.tangent = lerp(start.tangent, end.tangent, t);
             result.color = lerp(start.color, end.color, t);
             result.uv = lerp(start.uv, end.uv, t);
-
-            // 返回插值后的顶点
             return result;
         }
 
-
+        /// <summary>
+        /// 判断顶点是否在裁剪平面的内侧
+        /// </summary>
+        /// <param name="plane"></param>
+        /// <param name="vertex"></param>
+        /// <returns></returns>
         private bool IsInsidePlane(float4 plane, float4 vertex)
         {
-            return dot(plane, vertex) <= 0;
+            // 推导：
+            // 在ndc空间必然满足有：
+            // 左裁剪面 (x/w >= -1) => (x >= -w) => (x + w >= 0)
+            // 右裁剪面 (x/w <= 1) => (x <= w) => (-x + w >= 0)
+            // 下裁剪面 (y/w >= -1) => (y >= -w) => (y + w >= 0)
+            // 上裁剪面 (y/w <= 1) => (y <= w) => (-y + w >= 0)
+            // 近裁剪面 (z/w >= -1) => (z >= -w) => (z + w >= 0)
+            // 远裁剪面 (z/w <= 1) => (z <= w) => (-z + w >= 0)
+            // 所以： 
+            return dot(plane, vertex) >= 0;
         }
 
-        private float GetIntersectRatio(float4 prev, float4 curv, float4 plane)
-        {
-            float t = dot(plane, prev) / dot(plane, prev - curv);
-            return t;
-        }
+        // private float GetIntersectRatio(float4 prev, float4 curv, float4 plane)
+        // {
+        //     float t = dot(plane, prev) / dot(plane, prev - curv);
+        //     return t;
+        // }
 
         /// <summary>
         /// 三角形光栅化(重心坐标法)
@@ -343,7 +346,6 @@ namespace LcLSoftRender
             var position0 = TransformTool.ClipPositionToScreenPosition(vertex0.positionCS, m_Camera, out var ndcPos0);
             var position1 = TransformTool.ClipPositionToScreenPosition(vertex1.positionCS, m_Camera, out var ndcPos1);
             var position2 = TransformTool.ClipPositionToScreenPosition(vertex2.positionCS, m_Camera, out var ndcPos2);
-
 
             if (IsCull(ndcPos0, ndcPos1, ndcPos2, shader.CullMode)) return;
 

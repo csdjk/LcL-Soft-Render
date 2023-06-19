@@ -15,24 +15,16 @@ namespace LcLSoftRender
         {
             // 将裁剪空间中的坐标转换为NDC空间中的坐标
             ndcPos = clipPos.xyz / clipPos.w;
+            if (ndcPos.x > 1 || ndcPos.x < -1 || ndcPos.y > 1 || ndcPos.y < -1 || ndcPos.z > 1 || ndcPos.z < -1)
+            {
+                Debug.Log("ndcPos" + ndcPos);
+            }
             // 将NDC空间中的坐标转换为屏幕空间中的坐标
-            // float4 screenPos = new float4(
-            //     (ndcPos.x + 1.0f) * 0.5f * Global.screenSize.x,
-            //     (ndcPos.y + 1.0f) * 0.5f * Global.screenSize.y,
-            //     // z深度
-            //     ndcPos.z,
-            //     // w透视矫正系数
-            //     clipPos.w
-            // );
-
-            var f = camera.farClipPlane;
-            var n = camera.nearClipPlane;
             float4 screenPos = new float4(
-               (ndcPos.x + 1.0f) * 0.5f * camera.pixelWidth,
-               (ndcPos.y + 1.0f) * 0.5f * camera.pixelHeight,
-            //    ndcPos.z * (f - n) / 2 + (f + n) / 2,
+               (ndcPos.x + 1.0f) * 0.5f * (camera.pixelWidth - 1),
+               (ndcPos.y + 1.0f) * 0.5f * (camera.pixelHeight - 1),
+               // ndcPos.z * (f - n) / 2 + (f + n) / 2,
                ndcPos.z * 0.5f + 0.5f,
-                // ndcPos.z,
                // w透视矫正系数
                clipPos.w
            );
@@ -46,7 +38,6 @@ namespace LcLSoftRender
         /// <returns></returns>
         public static float4 TransformObjectToHClip(float3 modelPos, float4x4 matrixMVP)
         {
-            // float4 clipPos = mul(matrixMVP, float4(modelPos.xyz, 1));
             return mul(matrixMVP, float4(modelPos.xyz, 1.0f));
         }
 

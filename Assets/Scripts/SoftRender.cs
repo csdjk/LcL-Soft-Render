@@ -43,14 +43,21 @@ namespace LcLSoftRender
 
         Camera m_Camera;
         CPURasterizer m_Rasterizer;
+        public CPURasterizer rasterizer => m_Rasterizer;
         List<RenderObject> m_RenderObjects = new List<RenderObject>();
         public List<RenderObject> renderObjects => m_RenderObjects;
         List<MeshFilter> m_Meshes = new List<MeshFilter>();
+        // instance
+        public static SoftRender instance;
 
-        private void Awake()
+        void Awake()
         {
             Init();
             Render();
+        }
+        void OnEnable()
+        {
+            instance = this;
         }
 
         public void Init()
@@ -64,6 +71,7 @@ namespace LcLSoftRender
         private void OnDisable()
         {
             m_Camera.cullingMask = 1;
+            instance = null;
         }
 
         private void DisableUnityCamera()

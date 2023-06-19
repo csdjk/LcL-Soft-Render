@@ -27,7 +27,6 @@ namespace LcLSoftRender
 
             m_ColorBuffer = new Color[width * height];
             m_ColorTexture = new Texture2D(width, height, TextureFormat.RGBA32, false) { name = "ColorAttachment0" };
-            // m_DepthBuffer = new Color[width * height];
             m_DepthBuffer = new float[width * height];
             m_DepthTexture = new Texture2D(width, height, TextureFormat.RFloat, false);
         }
@@ -50,8 +49,9 @@ namespace LcLSoftRender
             var index = GetIndex(x, y);
             if (index >= m_ColorBuffer.Length || index < 0)
             {
-                Debug.Log(index);
-                Debug.Log("2");
+                Debug.Log($"x:{x} y:{y}");
+                Debug.Log(m_ColorBuffer.Length);
+                Debug.Log($"index:{index}");
             }
             m_ColorBuffer[index] = color;
         }

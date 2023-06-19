@@ -4,7 +4,6 @@ namespace LcLSoftRender
     public enum RasterizerType
     {
         CPU,
-        CPUJobs,
         GPUDriven
     }
     public enum ClearMask
@@ -28,8 +27,6 @@ namespace LcLSoftRender
         Overlay = 4000
     }
 
-
-
     public enum ZTest
     {
         Off,
@@ -43,13 +40,11 @@ namespace LcLSoftRender
         Always
     }
 
-    // ZWrite
     public enum ZWrite
     {
         Off,
         On
     }
-
 
     public enum CullMode
     {
@@ -107,8 +102,4 @@ namespace LcLSoftRender
         GreaterEqual,
         Always
     }
-
-
-
-
 }

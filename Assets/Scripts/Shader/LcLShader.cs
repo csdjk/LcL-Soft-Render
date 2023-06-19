@@ -48,12 +48,4 @@ namespace LcLSoftRender
         public abstract VertexOutput Vertex(Vertex vertex);
     }
 
-
-    // [CreateAssetMenu(menuName = "LcLSoftRender/Material")]
-    // [Serializable]
-    // public class LcLMaterial : ScriptableObject
-    // {
-    //     public Color albedoColor = Color.white;
-    // }
-
 }
