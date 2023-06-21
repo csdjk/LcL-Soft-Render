@@ -36,7 +36,9 @@ namespace LcLSoftRender
             }
         }
         public RasterizerType RasterizerType = RasterizerType.CPU;
+        public CameraClearFlags clearFlags = CameraClearFlags.Color;
         public Color clearColor = Color.black;
+
         public PrimitiveType primitiveType = PrimitiveType.Triangle;
         private int m_FrameCount = 0;
         public int m_FrameInterval = 2;

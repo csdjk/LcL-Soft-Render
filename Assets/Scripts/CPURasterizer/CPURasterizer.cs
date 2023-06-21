@@ -66,6 +66,15 @@ namespace LcLSoftRender
                 model.shader.MatrixM = model.matrixM;
                 model.shader.MatrixVP = m_MatrixVP;
                 model.shader.MatrixMVP = CalculateMatrixMVP(model.matrixM);
+                if (model.isSkyBox)
+                {
+                    // 将skybox的位置设置为相机的位置
+                    Matrix4x4 matrixMVP = m_MatrixVP;
+                    matrixMVP[0, 3] = 0;
+                    matrixMVP[1, 3] = 0;
+                    matrixMVP[2, 3] = 0;
+                    model.shader.MatrixMVP = matrixMVP;
+                }
                 DrawElements(model);
                 if (IsDebugging() && i == m_DebugIndex)
                 {
@@ -111,7 +120,8 @@ namespace LcLSoftRender
             var vertexBuffer = model.vertexBuffer;
             var indexBuffer = model.indexBuffer;
             var shader = model.shader;
-            for (int i = 0; i < indexBuffer.Count(); i += 3)
+            var count = indexBuffer.Count();
+            for (int i = 0; i < count; i += 3)
             {
                 Vertex v0 = vertexBuffer[indexBuffer[i + 0]];
                 Vertex v1 = vertexBuffer[indexBuffer[i + 1]];
@@ -124,7 +134,7 @@ namespace LcLSoftRender
                 // 裁剪三角形
                 if (!ClipTriangle(vertex0, vertex1, vertex2, out var clippedVertices))
                 {
-                    return;
+                    continue;
                 }
 
                 // 绘制裁剪后的三角形
@@ -159,8 +169,12 @@ namespace LcLSoftRender
             var position0 = TransformTool.ClipPositionToScreenPosition(vertex0.positionCS, m_Camera, out var ndcPos0);
             var position1 = TransformTool.ClipPositionToScreenPosition(vertex1.positionCS, m_Camera, out var ndcPos1);
             var position2 = TransformTool.ClipPositionToScreenPosition(vertex2.positionCS, m_Camera, out var ndcPos2);
-
-            if (IsCull(ndcPos0, ndcPos1, ndcPos2, shader.CullMode)) return;
+            Debug.Log($"position0:{position0},position1:{position1},position2:{position2}");
+            Debug.Log($"ndcPos0:{ndcPos0},ndcPos1:{ndcPos1},ndcPos2:{ndcPos2}");
+            if (IsCull(ndcPos0, ndcPos1, ndcPos2, shader.CullMode))
+            {
+                return;
+            }
 
             DrawLine(position0.xyz, position1.xyz, shader.baseColor);
             DrawLine(position1.xyz, position2.xyz, shader.baseColor);
@@ -296,12 +310,19 @@ namespace LcLSoftRender
             return true;
         }
 
-        // 定义一个插值函数，用于在两个顶点之间进行插值，生成一个新的顶点
+        /// <summary>
+        /// 顶点插值(两个顶点之间进行插值)
+        /// </summary>
+        /// <param name="start"></param>
+        /// <param name="end"></param>
+        /// <param name="t"></param>
+        /// <returns></returns>
         VertexOutput InterpolateVertexOutputs(VertexOutput start, VertexOutput end, float t)
         {
             var result = (VertexOutput)Activator.CreateInstance(start.GetType());
             // 对每个顶点属性进行插值
             result.positionCS = lerp(start.positionCS, end.positionCS, t);
+            result.positionOS = lerp(start.positionOS, end.positionOS, t);
             result.normal = lerp(start.normal, end.normal, t);
             result.tangent = lerp(start.tangent, end.tangent, t);
             result.color = lerp(start.color, end.color, t);
@@ -455,7 +476,7 @@ namespace LcLSoftRender
         }
 
         /// <summary>
-        /// 插值顶点属性
+        /// 插值顶点属性(重心坐标插值)
         /// </summary>
         /// <param name="v0"></param>
         /// <param name="v1"></param>
@@ -467,6 +488,7 @@ namespace LcLSoftRender
 
             var result = (VertexOutput)Activator.CreateInstance(v0.GetType());
             // result.positionCS = barycentric.x * v0.positionCS + barycentric.y * v1.positionCS + barycentric.z * v2.positionCS;
+            result.positionOS = barycentric.x * v0.positionOS + barycentric.y * v1.positionOS + barycentric.z * v2.positionOS;
             result.normal = barycentric.x * v0.normal + barycentric.y * v1.normal + barycentric.z * v2.normal;
             result.color = barycentric.x * v0.color + barycentric.y * v1.color + barycentric.z * v2.color;
             result.uv = barycentric.x * v0.uv + barycentric.y * v1.uv + barycentric.z * v2.uv;

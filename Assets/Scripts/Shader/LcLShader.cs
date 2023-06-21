@@ -6,10 +6,22 @@ using Unity.Mathematics;
 
 namespace LcLSoftRender
 {
-    using Unity.Mathematics;
+    [System.Serializable]
+    public class SkyboxImages
+    {
+        public Texture2D front;
+        public Texture2D back;
+        public Texture2D left;
+        public Texture2D right;
+        public Texture2D up;
+        public Texture2D down;
+    }
+
+
     public abstract class VertexOutput
     {
         public float4 positionCS;
+        public float4 positionOS;
         public float4 normal;
         public float4 tangent;
         public float2 uv;

@@ -19,17 +19,124 @@ namespace LcLSoftRender
             return texture.GetPixel((int)(uv.x * texture.width), (int)(uv.y * texture.height)).ToFloat4();
         }
 
-        public static Vector3 ColorToVector3(Color color)
+        /// <summary>
+        /// 计算天空盒的面以及uv坐标
+        /// https://www.khronos.org/registry/OpenGL/specs/es/2.0/es_full_spec_2.0.pdf
+        /// </summary>
+        /// <param name="direction"></param>
+        /// <param name="texcoord"></param>
+        /// <returns></returns>
+        public static int SelectCubemapFace(float3 direction, out float2 texcoord)
         {
-            return new Vector3(color.r, color.g, color.b);
+            float abs_x = abs(direction.x);
+            float abs_y = abs(direction.y);
+            float abs_z = abs(direction.z);
+            float ma, sc, tc;
+            int face_index;
+
+            if (abs_x > abs_y && abs_x > abs_z)
+            {   // major axis -> x
+                ma = abs_x;
+                if (direction.x > 0)
+                {                  // positive x
+                    face_index = 0;
+                    sc = -direction.z;
+                    tc = -direction.y;
+                }
+                else
+                {                                // negative x
+                    face_index = 1;
+                    sc = +direction.z;
+                    tc = -direction.y;
+                }
+            }
+            else if (abs_y > abs_z)
+            {             // major axis -> y
+                ma = abs_y;
+                if (direction.y > 0)
+                {                  // positive y
+                    face_index = 2;
+                    sc = +direction.x;
+                    tc = +direction.z;
+                }
+                else
+                {                                // negative y
+                    face_index = 3;
+                    sc = +direction.x;
+                    tc = -direction.z;
+                }
+            }
+            else
+            {                                // major axis -> z
+                ma = abs_z;
+                if (direction.z > 0)
+                {                  // positive z
+                    face_index = 4;
+                    sc = +direction.x;
+                    tc = -direction.y;
+                }
+                else
+                {                                // negative z
+                    face_index = 5;
+                    sc = -direction.x;
+                    tc = -direction.y;
+                }
+            }
+
+            texcoord = new float2((sc / ma + 1) / 2, (tc / ma + 1) / 2);
+            return face_index;
         }
 
-        public static Vector3 UnpackNormal(Vector3 normal)
+
+        public static float4 TextureRepeatSample(Texture2D texture, float2 texcoord)
         {
-            return new Vector3(normal.x * 2 - 1, normal.y * 2 - 1, normal.z * 2 - 1);
+            float u = texcoord.x - floor(texcoord.x);
+            float v = texcoord.y - floor(texcoord.y);
+            return tex2D(texture, float2(u, v));
         }
 
-        public static bool DepthTest(float depth, float depthBuffer, ZTest zTest){
+        /// <summary>
+        /// 采样CubeMap
+        /// </summary>
+        /// <param name="texture"></param>
+        /// <param name="direction"></param>
+        /// <returns></returns>
+        public static float4 SampleCubemap(SkyboxImages texture, float3 direction)
+        {
+            float2 uv;
+            int face_index = SelectCubemapFace(direction, out uv);
+            uv.y = 1 - uv.y;
+
+            switch (face_index)
+            {
+                case 0:
+                    return TextureRepeatSample(texture.right, uv);
+                case 1:
+                    return TextureRepeatSample(texture.left, uv);
+                case 2:
+                    return TextureRepeatSample(texture.up, uv);
+                case 3:
+                    return TextureRepeatSample(texture.down, uv);
+                case 4:
+                    return TextureRepeatSample(texture.front, uv);
+                case 5:
+                    return TextureRepeatSample(texture.back, uv);
+                default:
+                    return 1;
+            }
+        }
+
+
+
+
+
+        public static float3 UnpackNormal(float3 normal)
+        {
+            return new float3(normal.x * 2 - 1, normal.y * 2 - 1, normal.z * 2 - 1);
+        }
+
+        public static bool DepthTest(float depth, float depthBuffer, ZTest zTest)
+        {
             switch (zTest)
             {
                 case ZTest.Always:

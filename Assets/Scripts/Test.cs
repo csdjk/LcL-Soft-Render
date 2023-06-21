@@ -10,6 +10,7 @@ public class Test : MonoBehaviour
 {
     private void OnEnable()
     {
+        Camera.main.clearFlags = CameraClearFlags.Skybox;
         // GeometryUtility.CalculateFrustumPlanes(m_Camera);
     }
 

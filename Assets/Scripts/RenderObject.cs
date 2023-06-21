@@ -15,7 +15,7 @@ namespace LcLSoftRender
         public LcLShader shader = new UnlitShader();
         public RenderQueue renderQueue => shader.RenderQueue;
         public bool isTransparent => shader.RenderQueue >= RenderQueue.AlphaTest;
-
+        public bool isSkyBox => shader.RenderQueue == RenderQueue.Background;
         private float4x4 m_MatrixM;
         public float4x4 matrixM => m_MatrixM;
 

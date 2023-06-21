@@ -15,10 +15,6 @@ namespace LcLSoftRender
         {
             // 将裁剪空间中的坐标转换为NDC空间中的坐标
             ndcPos = clipPos.xyz / clipPos.w;
-            if (ndcPos.x > 1 || ndcPos.x < -1 || ndcPos.y > 1 || ndcPos.y < -1 || ndcPos.z > 1 || ndcPos.z < -1)
-            {
-                Debug.Log("ndcPos" + ndcPos);
-            }
             // 将NDC空间中的坐标转换为屏幕空间中的坐标
             float4 screenPos = new float4(
                (ndcPos.x + 1.0f) * 0.5f * (camera.pixelWidth - 1),
@@ -54,7 +50,7 @@ namespace LcLSoftRender
             // 创建一个视图变换矩阵
             var viewMatrix = CreateViewMatrix(position, forward, up);
             // float4x4 viewMatrix = float4x4.TRS(camera.transform.position, camera.transform.rotation, float3.one).inverse;
-
+        
             // 创建一个透视投影矩阵
             float4x4 projectionMatrix = Perspective(camera.nearClipPlane, camera.farClipPlane, camera.fieldOfView, camera.aspect);
 
