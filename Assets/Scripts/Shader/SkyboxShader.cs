@@ -7,7 +7,6 @@ using static Unity.Mathematics.math;
 namespace LcLSoftRender
 {
 
-
     public class SkyboxShader : LcLShader
     {
         public SkyboxShader()
@@ -18,7 +17,6 @@ namespace LcLSoftRender
         /// ================================ Shader 属性 ================================
         // 定义一个cubemap 用于存储天空盒的六张图片
         public SkyboxImages skybox;
-
 
         class Attribute : VertexOutput
         {

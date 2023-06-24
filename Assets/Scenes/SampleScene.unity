@@ -26,7 +26,7 @@ RenderSettings:
   m_AmbientIntensity: 1
   m_AmbientMode: 0
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 2100000, guid: 46fb0c1c8a954b94dab82d12ac776ec7, type: 2}
+  m_SkyboxMaterial: {fileID: 2100000, guid: 9c0f5b73a58f6f64787f50710f658b37, type: 2}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 705507994}
-  m_IndirectSpecularColor: {r: 0.12021829, g: 0.1858214, b: 0.3347534, a: 1}
+  m_IndirectSpecularColor: {r: 0.13006759, g: 0.17246583, b: 0.219423, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -132,7 +132,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 4fff4f268b076c04d97c39dc72b37470, type: 3}
       propertyPath: m_RootOrder
-      value: 5
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 4fff4f268b076c04d97c39dc72b37470, type: 3}
       propertyPath: m_LocalScale.x
@@ -628,7 +628,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 4
+  m_RootOrder: 5
   m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
 --- !u!1 &564365954
 GameObject:
@@ -758,7 +758,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 3
+  m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!1 &705507993
 GameObject:
@@ -905,7 +905,7 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0.1
-  far clip plane: 50
+  far clip plane: 1000
   field of view: 60
   orthographic: 0
   orthographic size: 5
@@ -931,14 +931,14 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
-  m_LocalRotation: {x: -0.18658625, y: 0.17340215, z: -0.033990633, w: -0.9664171}
-  m_LocalPosition: {x: 11.240451, y: -0.53390694, z: -9.922775}
+  m_LocalRotation: {x: 0.009054891, y: -0.9822837, z: 0.18058279, w: 0.04925978}
+  m_LocalPosition: {x: 1.5714073, y: 4.0308266, z: 15.297882}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 6.325, y: 51.77, z: 0}
 --- !u!114 &963194229
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -952,6 +952,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   RasterizerType: 0
+  clearFlags: 1
   clearColor: {r: 0, g: 0, b: 0, a: 1}
   primitiveType: 0
   m_FrameInterval: 1
@@ -989,7 +990,7 @@ Transform:
   - {fileID: 1945321373}
   - {fileID: 1480762627}
   m_Father: {fileID: 0}
-  m_RootOrder: 2
+  m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1480762622
 GameObject:
@@ -1140,7 +1141,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1524229193
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1171,7 +1172,7 @@ MonoBehaviour:
         m_CullMode: 2
         m_BlendMode: 0
         baseColor: {r: 1, g: 1, b: 1, a: 1}
-        mainTexture: {fileID: 0}
+        mainTexture: {fileID: 2800000, guid: d1ce6071983b0a3409843b111e9425a0, type: 3}
 --- !u!65 &1524229194
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -1243,12 +1244,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1524229192}
   m_LocalRotation: {x: -0, y: 0.36162332, z: -0, w: 0.93232435}
-  m_LocalPosition: {x: 0.71, y: -0.5092247, z: 3.93}
-  m_LocalScale: {x: 1.7336, y: 1.7336, z: 1.7336}
+  m_LocalPosition: {x: 0.71, y: -0.50922, z: 3.93}
+  m_LocalScale: {x: 3.9401262, y: 3.9401262, z: 3.9401262}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 6
+  m_RootOrder: 7
   m_LocalEulerAnglesHint: {x: 0, y: 42.4, z: 0}
 --- !u!1 &1630227426
 GameObject:
@@ -1391,15 +1392,15 @@ GameObject:
   - component: {fileID: 1834890342}
   - component: {fileID: 1834890341}
   - component: {fileID: 1834890340}
-  - component: {fileID: 1834890339}
   - component: {fileID: 1834890338}
+  - component: {fileID: 1834890343}
   m_Layer: 0
   m_Name: Sky
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1834890338
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1437,19 +1438,6 @@ MonoBehaviour:
           right: {fileID: 2800000, guid: 36ba7007a7f56734e8a50ba61d36bbfb, type: 3}
           up: {fileID: 2800000, guid: 212b4944d919c3f499dc218928256377, type: 3}
           down: {fileID: 2800000, guid: 6f486610c0b4d28438741e25199b0995, type: 3}
---- !u!65 &1834890339
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1834890337}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!23 &1834890340
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -1507,14 +1495,27 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1834890337}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0.0000000037252903, y: -0, z: 0.0000000018626451, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 83.450005, y: 83.450005, z: 83.450005}
+  m_LocalScale: {x: 1000, y: 1000, z: 1000}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 7
+  m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!135 &1834890343
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1834890337}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &1945321368
 GameObject:
   m_ObjectHideFlags: 0

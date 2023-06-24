@@ -45,7 +45,7 @@ namespace LcLSoftRender
 
             var uv = input.uv;
 
-            var tex = Utility.tex2D(mainTexture, uv);
+            var tex = Utility.SampleTexture2D(mainTexture, uv);
             colorOutput = baseColor.ToFloat4() * tex.xyzw;
             return false;
         }

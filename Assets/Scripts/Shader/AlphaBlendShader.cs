@@ -53,7 +53,7 @@ namespace LcLSoftRender
             var uv = vertexOutput.uv;
             var normalWS = normalize(vertexOutput.normal);
 
-            var tex = Utility.tex2D(mainTexture, uv);
+            var tex = Utility.SampleTexture2D(mainTexture, uv);
 
             colorOutput.xyz = tex.xyz;
             colorOutput.w = 0.5f;

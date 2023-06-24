@@ -69,11 +69,11 @@ namespace LcLSoftRender
                 if (model.isSkyBox)
                 {
                     // 将skybox的位置设置为相机的位置
-                    Matrix4x4 matrixMVP = m_MatrixVP;
-                    matrixMVP[0, 3] = 0;
-                    matrixMVP[1, 3] = 0;
-                    matrixMVP[2, 3] = 0;
-                    model.shader.MatrixMVP = matrixMVP;
+                    // Matrix4x4 matrixMVP = m_MatrixVP;
+                    // matrixMVP[0, 3] = 0;
+                    // matrixMVP[1, 3] = 0;
+                    // matrixMVP[2, 3] = 0;
+                    // model.shader.MatrixMVP = matrixMVP;
                 }
                 DrawElements(model);
                 if (IsDebugging() && i == m_DebugIndex)
@@ -147,6 +147,7 @@ namespace LcLSoftRender
                             break;
                         case PrimitiveType.Triangle:
                             RasterizeTriangle(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1], shader);
+                            // RasterizeTriangleMSAA(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1], shader, 4);
                             break;
                     }
                 }
@@ -395,13 +396,12 @@ namespace LcLSoftRender
 
                         /// ================================ 当前像素的深度插值 ================================
                         float depth = barycentric.x * position0.z + barycentric.y * position1.z + barycentric.z * position2.z;
-                        // depth *= z;
 
                         var depthBuffer = m_FrameBuffer.GetDepth(x, y);
                         // 深度测试
                         if (Utility.DepthTest(depth, depthBuffer, shader.ZTest))
                         {
-                            // 除以w分量(透视矫正系数)，以进行透视矫正
+                            // 进行透视矫正
                             barycentric = barycentric / float3(position0.w, position1.w, position2.w) * z;
                             // 插值顶点属性
                             var lerpVertex = InterpolateVertexOutputs(vertex0, vertex1, vertex2, barycentric);
@@ -421,7 +421,89 @@ namespace LcLSoftRender
         }
 
 
+        public void RasterizeTriangleMSAA(VertexOutput vertex0, VertexOutput vertex1, VertexOutput vertex2, LcLShader shader, int sampleCount)
+        {
+            var position0 = TransformTool.ClipPositionToScreenPosition(vertex0.positionCS, m_Camera, out var ndcPos0);
+            var position1 = TransformTool.ClipPositionToScreenPosition(vertex1.positionCS, m_Camera, out var ndcPos1);
+            var position2 = TransformTool.ClipPositionToScreenPosition(vertex2.positionCS, m_Camera, out var ndcPos2);
 
+            if (IsCull(ndcPos0, ndcPos1, ndcPos2, shader.CullMode)) return;
+
+            // 计算三角形的边界框
+            int2 bboxMin = (int2)min(position0.xy, min(position1.xy, position2.xy));
+            int2 bboxMax = (int2)max(position0.xy, max(position1.xy, position2.xy));
+
+            // 遍历边界框内的每个像素
+            for (int y = bboxMin.y; y <= bboxMax.y; y++)
+            {
+                for (int x = bboxMin.x; x <= bboxMax.x; x++)
+                {
+                    float4 color = 0;
+                    float depth = 0;
+
+                    // 对每个采样点进行采样
+                    for (int i = 0; i < sampleCount; i++)
+                    {
+                        // 计算采样点的位置
+                        float2 samplePos = float2(x, y) + GetSampleOffset(i, sampleCount);
+
+                        // 计算像素的重心坐标
+                        float3 barycentric = TransformTool.BarycentricCoordinate(samplePos, position0.xy, position1.xy, position2.xy);
+
+                        // 如果像素在三角形内，则进行采样
+                        if (barycentric.x >= 0 && barycentric.y >= 0 && barycentric.z >= 0)
+                        {
+                            // 透视矫正
+                            float z = 1 / (barycentric.x / position0.w + barycentric.y / position1.w + barycentric.z / position2.w);
+                            barycentric = barycentric / float3(position0.w, position1.w, position2.w) * z;
+
+                            // 插值顶点属性
+                            var lerpVertex = InterpolateVertexOutputs(vertex0, vertex1, vertex2, barycentric);
+
+                            // 执行片元着色器
+                            var isDiscard = shader.Fragment(lerpVertex, out float4 sampleColor);
+                            if (!isDiscard)
+                            {
+                                // 深度测试
+                                float sampleDepth = barycentric.x * position0.z + barycentric.y * position1.z + barycentric.z * position2.z;
+                                if (Utility.DepthTest(sampleDepth, depth, shader.ZTest))
+                                {
+                                    color += sampleColor;
+                                    depth = sampleDepth;
+                                }
+                            }
+                        }
+                    }
+
+                    // 对采样结果进行平均
+                    color /= sampleCount;
+
+                    // 混合颜色
+                    color = Utility.BlendColors(color, m_FrameBuffer.GetColor(x, y), shader.BlendMode);
+
+                    // 写入颜色和深度
+                    m_FrameBuffer.SetColor(x, y, color);
+                    if (shader.ZWrite == ZWrite.On)
+                        m_FrameBuffer.SetDepth(x, y, depth);
+                }
+            }
+        }
+
+        private static float2 GetSampleOffset(int index, int sampleCount)
+        {
+            // 根据采样点的数量和索引计算采样点的偏移量
+            switch (sampleCount)
+            {
+                case 2:
+                    return new float2(index % 2, index / 2) / 2;
+                case 4:
+                    return new float2(index % 2, index / 2) / 2 + new float2(0.25f, 0.25f);
+                case 8:
+                    return new float2(index % 4, index / 4) / 4 + new float2(0.125f, 0.125f);
+                default:
+                    return 0;
+            }
+        }
 
         /// <summary>
         /// 背面剔除

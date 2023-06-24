@@ -52,7 +52,7 @@ namespace LcLSoftRender
 
             var uv = input.uv;
 
-            var tex = Utility.tex2D(mainTexture, uv);
+            var tex = Utility.SampleTexture2D(mainTexture, uv);
             if (tex.w < 0.5f)
             {
                 return true;
