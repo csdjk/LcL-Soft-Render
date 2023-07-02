@@ -17,9 +17,16 @@ Shader "lcl/Debugger"
         Tags { "RenderType" = "Opaque" }
         ZWrite ON
         Cull [_CullMode]
-
+        
         Pass
         {
+            
+            Stencil
+            {
+                Ref 10
+                Comp  Always
+                Pass  Replace
+            }
             CGPROGRAM
 
             #pragma vertex vert

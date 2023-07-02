@@ -17,18 +17,38 @@ namespace LcLSoftRender
         private Color[] m_ColorBuffer;
         private float[] m_DepthBuffer;
 
-        // private Texture2D m_ColorTexture;
-        // private Texture2D m_DepthBuffer;
-
-        public FrameBuffer(int width, int height)
+        public FrameBuffer(int width, int height , int sampleCount = 1)
         {
             m_Width = width;
             m_Height = height;
 
-            m_ColorBuffer = new Color[width * height];
-            m_ColorTexture = new Texture2D(width, height, TextureFormat.RGBA32, false) { name = "ColorAttachment0" };
-            m_DepthBuffer = new float[width * height];
-            m_DepthTexture = new Texture2D(width, height, TextureFormat.RFloat, false);
+            if (sampleCount > 1)
+            {
+                // 创建多重采样帧缓冲区
+                m_ColorTexture = new Texture2D(width, height, TextureFormat.RGBA32, false) { name = "ColorAttachment0" };
+                
+
+                m_ColorTexture = new Texture2D(width, height, TextureFormat.RGBA32, false) { name = "ColorAttachment0" };
+                m_ColorTexture.SetPixel(0, 0, Color.clear);
+                m_ColorTexture.Apply();
+
+                m_DepthTexture = new Texture2D(width, height, TextureFormat.RFloat, false);
+                m_DepthTexture.SetPixel(0, 0, Color.clear);
+                m_DepthTexture.Apply();
+            }
+            else
+            {
+                m_ColorBuffer = new Color[width * height];
+                m_ColorTexture = new Texture2D(width, height, TextureFormat.RGBA32, false) { name = "ColorAttachment0" };
+
+                m_DepthBuffer = new float[width * height];
+                m_DepthTexture = new Texture2D(width, height, TextureFormat.RFloat, false);
+            }
+
+            // m_ColorBuffer = new Color[width * height];
+            // m_ColorTexture = new Texture2D(width, height, TextureFormat.RGBA32, false) { name = "ColorAttachment0" };
+            // m_DepthBuffer = new float[width * height];
+            // m_DepthTexture = new Texture2D(width, height, TextureFormat.RFloat, false);
         }
 
         public void Release()
@@ -49,9 +69,8 @@ namespace LcLSoftRender
             var index = GetIndex(x, y);
             if (index >= m_ColorBuffer.Length || index < 0)
             {
-                Debug.Log($"x:{x} y:{y}");
-                Debug.Log(m_ColorBuffer.Length);
-                Debug.Log($"index:{index}");
+                Debug.LogError($"SetColor index out of range x:{x} y:{y} index:{index}");
+                return;
             }
             m_ColorBuffer[index] = color;
         }

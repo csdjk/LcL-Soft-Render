@@ -16,7 +16,12 @@ namespace LcLSoftRender
         Triangle,
         Line
     }
-
+    public enum MSAAMode
+    {
+        Off = 0,
+        MSAA2x = 2,
+        MSAA4x = 4,
+    }
     // queue
     public enum RenderQueue
     {

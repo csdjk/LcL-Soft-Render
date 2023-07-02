@@ -12,6 +12,7 @@ namespace LcLSoftRender
     public class CPURasterizer : IRasterizer
     {
         PrimitiveType m_PrimitiveType = PrimitiveType.Triangle;
+        MSAAMode m_MSAAMode = MSAAMode.MSAA4x;
         private int2 m_ViewportSize;
         private Camera m_Camera;
         private float4x4 m_Model;
@@ -76,6 +77,7 @@ namespace LcLSoftRender
                     // model.shader.MatrixMVP = matrixMVP;
                 }
                 DrawElements(model);
+
                 if (IsDebugging() && i == m_DebugIndex)
                 {
                     break;
@@ -146,11 +148,12 @@ namespace LcLSoftRender
                             WireFrameTriangle(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1], shader);
                             break;
                         case PrimitiveType.Triangle:
-                            RasterizeTriangle(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1], shader);
-                            // RasterizeTriangleMSAA(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1], shader, 4);
+                            // RasterizeTriangle(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1], shader);
+                            RasterizeTriangleMSAA(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1], shader, 4);
                             break;
                     }
                 }
+
 
             }
             m_FrameBuffer.Apply();
@@ -440,12 +443,14 @@ namespace LcLSoftRender
                 {
                     float4 color = 0;
                     float depth = 0;
-
+                    bool inside = false;
                     // 对每个采样点进行采样
                     for (int i = 0; i < sampleCount; i++)
                     {
                         // 计算采样点的位置
                         float2 samplePos = float2(x, y) + GetSampleOffset(i, sampleCount);
+
+                        // bool useSample = all(sampleDist <= 1.0f);
 
                         // 计算像素的重心坐标
                         float3 barycentric = TransformTool.BarycentricCoordinate(samplePos, position0.xy, position1.xy, position2.xy);
@@ -459,37 +464,92 @@ namespace LcLSoftRender
 
                             // 插值顶点属性
                             var lerpVertex = InterpolateVertexOutputs(vertex0, vertex1, vertex2, barycentric);
+                            color += 1;
 
-                            // 执行片元着色器
-                            var isDiscard = shader.Fragment(lerpVertex, out float4 sampleColor);
-                            if (!isDiscard)
-                            {
-                                // 深度测试
-                                float sampleDepth = barycentric.x * position0.z + barycentric.y * position1.z + barycentric.z * position2.z;
-                                if (Utility.DepthTest(sampleDepth, depth, shader.ZTest))
-                                {
-                                    color += sampleColor;
-                                    depth = sampleDepth;
-                                }
-                            }
+                            // // 执行片元着色器
+                            // var isDiscard = shader.Fragment(lerpVertex, out float4 sampleColor);
+                            // if (!isDiscard)
+                            // {
+                            //     // 深度测试
+                            //     float sampleDepth = barycentric.x * position0.z + barycentric.y * position1.z + barycentric.z * position2.z;
+                            //     if (Utility.DepthTest(sampleDepth, depth, shader.ZTest))
+                            //     {
+                            //         color += sampleColor;
+                            //         depth = sampleDepth;
+                            //     }
+                            // }
+                            inside = true;
                         }
                     }
 
-                    // 对采样结果进行平均
-                    color /= sampleCount;
+                    if (inside)
+                    {
+                        color /= sampleCount;
+                        m_FrameBuffer.SetColor(x, y, color);
+                    }
 
-                    // 混合颜色
-                    color = Utility.BlendColors(color, m_FrameBuffer.GetColor(x, y), shader.BlendMode);
+                    // // 对采样结果进行平均
+                    // color /= sampleCount;
 
-                    // 写入颜色和深度
-                    m_FrameBuffer.SetColor(x, y, color);
-                    if (shader.ZWrite == ZWrite.On)
-                        m_FrameBuffer.SetDepth(x, y, depth);
+                    // // 混合颜色
+                    // color = Utility.BlendColors(color, m_FrameBuffer.GetColor(x, y), shader.BlendMode);
+
+                    // // 写入颜色和深度
+                    // m_FrameBuffer.SetColor(x, y, color);
+                    // if (shader.ZWrite == ZWrite.On)
+                    //     m_FrameBuffer.SetDepth(x, y, depth);
                 }
             }
         }
 
-        private static float2 GetSampleOffset(int index, int sampleCount)
+        float2[] m_SampleOffsets2x = new float2[]
+        {
+             float2(-0.25f, -0.25f),
+             float2(+0.25f, +0.25f)
+        };
+        // float2[] m_SampleOffsets4x = new float2[]
+        // {
+        //      float2(+0.125f, +0.375f),
+        //      float2(+0.375f, -0.125f),
+        //      float2(-0.125f, -0.375f),
+        //      float2(-0.375f, +0.125f)
+        // };
+
+        float2[] m_SampleOffsets4x = new float2[]
+        {
+            float2(0.375f, 0.875f),
+            float2( 0.875f, 0.625f),
+            float2( 0.125f, 0.375f),
+            float2( 0.625f, 0.125f),
+        };
+        float2[] m_SampleOffsets8x = new float2[]
+        {
+            float2(-0.375f, +0.375f),
+            float2(+0.125f, +0.375f),
+            float2(-0.125f, +0.125f),
+            float2(+0.375f, +0.125f),
+            float2(-0.375f, -0.125f),
+            float2(+0.125f, -0.125f),
+            float2(-0.125f, -0.375f),
+            float2(+0.375f, -0.375f)
+        };
+        private float2 GetSampleOffset(int index, int sampleCount)
+        {
+            // 根据采样点的数量和索引计算采样点的偏移量
+            switch (sampleCount)
+            {
+                case 2:
+                    return m_SampleOffsets2x[index];
+                case 4:
+                    return m_SampleOffsets4x[index];
+                case 8:
+                    return m_SampleOffsets8x[index];
+                default:
+                    return 0;
+            }
+        }
+
+        private float2 GetSampleOffset2(int index, int sampleCount)
         {
             // 根据采样点的数量和索引计算采样点的偏移量
             switch (sampleCount)

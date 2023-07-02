@@ -33,5 +33,5 @@ Material:
     - _ScleraSize: 1
     - _ShowValue: 0
     m_Colors:
-    - _Color: {r: 0, g: 0.16038783, b: 0.5283019, a: 1}
+    - _Color: {r: 0, g: 0.38679248, b: 0.005730274, a: 1}
   m_BuildTextureStacks: []
