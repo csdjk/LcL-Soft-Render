@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using LcLSoftRender;
@@ -8,8 +9,14 @@ using static Unity.Mathematics.math;
 [ExecuteAlways]
 public class Test : MonoBehaviour
 {
+    private float[][] m_DepthBufferMSAA;
+
     private void OnEnable()
     {
+        m_DepthBufferMSAA = new float[4][];
+        // fill the array
+        Array.Fill(m_DepthBufferMSAA, new float[4]);
+
         Camera.main.clearFlags = CameraClearFlags.Skybox;
         // GeometryUtility.CalculateFrustumPlanes(m_Camera);
         for (int i = 0; i < 4; i++)
@@ -17,6 +24,11 @@ public class Test : MonoBehaviour
             var offset = GetSampleOffset2(i, 4);
             Debug.Log(offset);
         }
+
+
+
+        float4 color = 0;
+        Debug.Log(color.Equals(0));
     }
     private float2 GetSampleOffset2(int index, int sampleCount)
     {

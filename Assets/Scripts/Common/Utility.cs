@@ -44,6 +44,7 @@ namespace LcLSoftRender
         }
         /// <summary>
         /// 计算天空盒的面以及uv坐标
+        /// https://en.wikipedia.org/wiki/Cube_mapping
         /// 有关立方体图采样，请参见小节 3.7.5 
         /// https://www.khronos.org/registry/OpenGL/specs/es/2.0/es_full_spec_2.0.pdf
         /// </summary>

@@ -13,6 +13,16 @@ namespace LcLSoftRender
     {
         PrimitiveType m_PrimitiveType = PrimitiveType.Triangle;
         MSAAMode m_MSAAMode = MSAAMode.MSAA4x;
+        public MSAAMode MSAAMode
+        {
+            get => m_MSAAMode;
+            set
+            {
+                m_MSAAMode = value;
+            }
+        }
+        public int SampleCount => (int)m_MSAAMode;
+        public bool IsMSAA => m_MSAAMode != MSAAMode.None;
         private int2 m_ViewportSize;
         private Camera m_Camera;
         private float4x4 m_Model;
@@ -23,10 +33,10 @@ namespace LcLSoftRender
         private FrameBuffer m_FrameBuffer;
         private LcLShader m_OverrideShader;
 
-        public CPURasterizer(Camera camera)
+        public CPURasterizer(Camera camera, MSAAMode msaaMode = MSAAMode.None)
         {
-
-            m_FrameBuffer = new FrameBuffer(camera.pixelWidth, camera.pixelHeight);
+            m_MSAAMode = msaaMode;
+            m_FrameBuffer = new FrameBuffer(camera.pixelWidth, camera.pixelHeight, SampleCount);
             m_Camera = camera;
             m_ViewportSize = new int2(camera.pixelWidth, camera.pixelHeight);
         }
@@ -84,6 +94,8 @@ namespace LcLSoftRender
                 }
             }
 
+            m_FrameBuffer.Resolve();
+            m_FrameBuffer.Apply();
         }
 
         /// <summary>
@@ -95,20 +107,7 @@ namespace LcLSoftRender
         public void Clear(ClearMask mask, Color? clearColor = null, float depth = float.PositiveInfinity)
         {
             Color realClearColor = clearColor == null ? Color.clear : clearColor.Value;
-
-            m_FrameBuffer.Foreach((x, y) =>
-            {
-                if ((mask & ClearMask.COLOR) != 0)
-                {
-                    m_FrameBuffer.SetColor(x, y, realClearColor);
-                }
-                if ((mask & ClearMask.DEPTH) != 0)
-                {
-                    m_FrameBuffer.SetDepth(x, y, depth);
-                }
-            });
-
-            m_FrameBuffer.Apply();
+            m_FrameBuffer.Clear(mask, realClearColor, depth);
         }
 
         /// <summary>
@@ -148,15 +147,14 @@ namespace LcLSoftRender
                             WireFrameTriangle(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1], shader);
                             break;
                         case PrimitiveType.Triangle:
-                            // RasterizeTriangle(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1], shader);
-                            RasterizeTriangleMSAA(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1], shader, 4);
+                            if (IsMSAA)
+                                RasterizeTriangleMSAA(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1], shader, SampleCount);
+                            else
+                                RasterizeTriangle(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1], shader);
                             break;
                     }
                 }
-
-
             }
-            m_FrameBuffer.Apply();
         }
 
         #region DrawWireFrame
@@ -423,7 +421,16 @@ namespace LcLSoftRender
             }
         }
 
-
+        /// <summary>
+        /// MSAA
+        /// https://mynameismjp.wordpress.com/2012/10/24/msaa-overview/
+        /// https://zhuanlan.zhihu.com/p/554603218
+        /// </summary>
+        /// <param name="vertex0"></param>
+        /// <param name="vertex1"></param>
+        /// <param name="vertex2"></param>
+        /// <param name="shader"></param>
+        /// <param name="sampleCount"></param>
         public void RasterizeTriangleMSAA(VertexOutput vertex0, VertexOutput vertex1, VertexOutput vertex2, LcLShader shader, int sampleCount)
         {
             var position0 = TransformTool.ClipPositionToScreenPosition(vertex0.positionCS, m_Camera, out var ndcPos0);
@@ -442,16 +449,13 @@ namespace LcLSoftRender
                 for (int x = bboxMin.x; x <= bboxMax.x; x++)
                 {
                     float4 color = 0;
-                    float depth = 0;
-                    bool inside = false;
+                    bool isShaded = false;
+                    bool isDiscard = false;
                     // 对每个采样点进行采样
                     for (int i = 0; i < sampleCount; i++)
                     {
                         // 计算采样点的位置
                         float2 samplePos = float2(x, y) + GetSampleOffset(i, sampleCount);
-
-                        // bool useSample = all(sampleDist <= 1.0f);
-
                         // 计算像素的重心坐标
                         float3 barycentric = TransformTool.BarycentricCoordinate(samplePos, position0.xy, position1.xy, position2.xy);
 
@@ -460,44 +464,39 @@ namespace LcLSoftRender
                         {
                             // 透视矫正
                             float z = 1 / (barycentric.x / position0.w + barycentric.y / position1.w + barycentric.z / position2.w);
-                            barycentric = barycentric / float3(position0.w, position1.w, position2.w) * z;
-
-                            // 插值顶点属性
-                            var lerpVertex = InterpolateVertexOutputs(vertex0, vertex1, vertex2, barycentric);
-                            color += 1;
-
-                            // // 执行片元着色器
-                            // var isDiscard = shader.Fragment(lerpVertex, out float4 sampleColor);
-                            // if (!isDiscard)
-                            // {
-                            //     // 深度测试
-                            //     float sampleDepth = barycentric.x * position0.z + barycentric.y * position1.z + barycentric.z * position2.z;
-                            //     if (Utility.DepthTest(sampleDepth, depth, shader.ZTest))
-                            //     {
-                            //         color += sampleColor;
-                            //         depth = sampleDepth;
-                            //     }
-                            // }
-                            inside = true;
+                            float depth = barycentric.x * position0.z + barycentric.y * position1.z + barycentric.z * position2.z;
+                            var depthBuffer = m_FrameBuffer.GetDepth(x, y, i);
+                            // 深度测试
+                            if (Utility.DepthTest(depth, depthBuffer, shader.ZTest))
+                            {
+                                barycentric = barycentric / float3(position0.w, position1.w, position2.w) * z;
+                                // 插值顶点属性
+                                var lerpVertex = InterpolateVertexOutputs(vertex0, vertex1, vertex2, barycentric);
+                                // 每个像素只进行一次片段着色
+                                if (!isShaded)
+                                {
+                                    isDiscard = shader.Fragment(lerpVertex, out float4 fragmentColor);
+                                    isShaded = true;
+                                    if (!isDiscard)
+                                    {
+                                        color = Utility.BlendColors(fragmentColor, m_FrameBuffer.GetColor(x, y, i), shader.BlendMode);
+                                        m_FrameBuffer.SetColor(x, y, color, i, true);
+                                        if (shader.ZWrite == ZWrite.On)
+                                            m_FrameBuffer.SetDepth(x, y, depth, i);
+                                    }
+                                }
+                                else
+                                {
+                                    if (!isDiscard)
+                                    {
+                                        m_FrameBuffer.SetColor(x, y, color, i, true);
+                                        if (shader.ZWrite == ZWrite.On)
+                                            m_FrameBuffer.SetDepth(x, y, depth, i);
+                                    }
+                                }
+                            }
                         }
                     }
-
-                    if (inside)
-                    {
-                        color /= sampleCount;
-                        m_FrameBuffer.SetColor(x, y, color);
-                    }
-
-                    // // 对采样结果进行平均
-                    // color /= sampleCount;
-
-                    // // 混合颜色
-                    // color = Utility.BlendColors(color, m_FrameBuffer.GetColor(x, y), shader.BlendMode);
-
-                    // // 写入颜色和深度
-                    // m_FrameBuffer.SetColor(x, y, color);
-                    // if (shader.ZWrite == ZWrite.On)
-                    //     m_FrameBuffer.SetDepth(x, y, depth);
                 }
             }
         }
@@ -507,20 +506,12 @@ namespace LcLSoftRender
              float2(-0.25f, -0.25f),
              float2(+0.25f, +0.25f)
         };
-        // float2[] m_SampleOffsets4x = new float2[]
-        // {
-        //      float2(+0.125f, +0.375f),
-        //      float2(+0.375f, -0.125f),
-        //      float2(-0.125f, -0.375f),
-        //      float2(-0.375f, +0.125f)
-        // };
-
         float2[] m_SampleOffsets4x = new float2[]
         {
-            float2(0.375f, 0.875f),
-            float2( 0.875f, 0.625f),
-            float2( 0.125f, 0.375f),
-            float2( 0.625f, 0.125f),
+             float2(+0.125f, +0.375f),
+             float2(+0.375f, -0.125f),
+             float2(-0.125f, -0.375f),
+             float2(-0.375f, +0.125f)
         };
         float2[] m_SampleOffsets8x = new float2[]
         {
@@ -548,7 +539,6 @@ namespace LcLSoftRender
                     return 0;
             }
         }
-
         private float2 GetSampleOffset2(int index, int sampleCount)
         {
             // 根据采样点的数量和索引计算采样点的偏移量

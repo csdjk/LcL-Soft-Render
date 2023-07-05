@@ -40,6 +40,7 @@ namespace LcLSoftRender
         public Color clearColor = Color.black;
 
         public PrimitiveType primitiveType = PrimitiveType.Triangle;
+        public MSAAMode msaaMode = MSAAMode.None;
         private int m_FrameCount = 0;
         public int m_FrameInterval = 2;
 
@@ -65,7 +66,7 @@ namespace LcLSoftRender
         public void Init()
         {
             m_Camera = GetComponent<Camera>();
-            m_Rasterizer = new CPURasterizer(m_Camera);
+            m_Rasterizer = new CPURasterizer(m_Camera, msaaMode);
             CollectRenderObjects();
             DisableUnityCamera();
         }
@@ -112,6 +113,7 @@ namespace LcLSoftRender
 
             Profiler.BeginSample("LcLSoftRender");
             {
+                m_Rasterizer.MSAAMode = msaaMode;
                 m_Rasterizer?.Clear(ClearMask.COLOR | ClearMask.DEPTH, clearColor);
 
 
