@@ -168,18 +168,19 @@ namespace LcLSoftRender
         private void OnGUI()
         {
             var texture = m_Rasterizer?.ColorTexture;
+            var screenSize = new Vector2(Screen.width, Screen.height);
             if (texture != null && active)
             {
                 GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), texture);
             }
-
-            if (GUILayout.Button("LcL Render"))
+           
+            if (GUILayout.Button("LcL Render", GUILayout.Width(screenSize.x / 10), GUILayout.Height(screenSize.x / 20)))
             {
                 active = true;
                 Init();
                 Render();
             }
-            if (GUILayout.Button("Unity Render"))
+            if (GUILayout.Button("Unity Render", GUILayout.Width(screenSize.x / 10), GUILayout.Height(screenSize.x / 20)))
             {
                 active = false;
             }

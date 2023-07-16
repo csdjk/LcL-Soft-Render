@@ -352,11 +352,10 @@ namespace LcLSoftRender
             return dot(plane, vertex) >= 0;
         }
 
-        // private float GetIntersectRatio(float4 prev, float4 curv, float4 plane)
-        // {
-        //     float t = dot(plane, prev) / dot(plane, prev - curv);
-        //     return t;
-        // }
+        // 无限接近0的负数,用于避免误差
+        // public const float NegativeInfinity = float.NegativeInfinity;
+        public const float NegativeInfinity = -0.000001f;
+        // public const float NegativeInfinity = 0.0f;
 
         /// <summary>
         /// 三角形光栅化(重心坐标法)
@@ -384,9 +383,8 @@ namespace LcLSoftRender
                     // 计算像素的重心坐标
                     float3 barycentric = TransformTool.BarycentricCoordinate(float2(x, y), position0.xy, position1.xy, position2.xy);
                     // float3 barycentric = TransformTool.BarycentricCoordinate2(float2(x, y), position0.xyz, position1.xyz, position2.xyz);
-
-                    // 如果像素在三角形内，则绘制该像素
-                    if (barycentric.x >= 0 && barycentric.y >= 0 && barycentric.z >= 0)
+                    // 如果像素在三角形内，则绘制该像素(NegativeInfinity避免误差)
+                    if (barycentric.x >= NegativeInfinity && barycentric.y >= NegativeInfinity && barycentric.z >= NegativeInfinity)
                     {
                         /// ================================ 透视矫正 ================================
                         // 推导公式:https://blog.csdn.net/Motarookie/article/details/124284471
@@ -451,6 +449,10 @@ namespace LcLSoftRender
                     float4 color = 0;
                     bool isShaded = false;
                     bool isDiscard = false;
+                    if (x == 0 && y == 0)
+                    {
+                        Debug.Log($"position0:{position0},position1:{position1},position2:{position2}");
+                    }
                     // 对每个采样点进行采样
                     for (int i = 0; i < sampleCount; i++)
                     {
@@ -458,9 +460,8 @@ namespace LcLSoftRender
                         float2 samplePos = float2(x, y) + GetSampleOffset(i, sampleCount);
                         // 计算像素的重心坐标
                         float3 barycentric = TransformTool.BarycentricCoordinate(samplePos, position0.xy, position1.xy, position2.xy);
-
                         // 如果像素在三角形内，则进行采样
-                        if (barycentric.x >= 0 && barycentric.y >= 0 && barycentric.z >= 0)
+                        if (barycentric.x >= NegativeInfinity && barycentric.y >= NegativeInfinity && barycentric.z >= NegativeInfinity)
                         {
                             // 透视矫正
                             float z = 1 / (barycentric.x / position0.w + barycentric.y / position1.w + barycentric.z / position2.w);
@@ -476,23 +477,17 @@ namespace LcLSoftRender
                                 if (!isShaded)
                                 {
                                     isDiscard = shader.Fragment(lerpVertex, out float4 fragmentColor);
+                                    var blendColor = Utility.BlendColors(fragmentColor, m_FrameBuffer.GetColor(x, y, i), shader.BlendMode);
+
                                     isShaded = true;
-                                    if (!isDiscard)
-                                    {
-                                        color = Utility.BlendColors(fragmentColor, m_FrameBuffer.GetColor(x, y, i), shader.BlendMode);
-                                        m_FrameBuffer.SetColor(x, y, color, i, true);
-                                        if (shader.ZWrite == ZWrite.On)
-                                            m_FrameBuffer.SetDepth(x, y, depth, i);
-                                    }
+                                    color = blendColor;
                                 }
-                                else
+                                if (!isDiscard)
                                 {
-                                    if (!isDiscard)
-                                    {
-                                        m_FrameBuffer.SetColor(x, y, color, i, true);
-                                        if (shader.ZWrite == ZWrite.On)
-                                            m_FrameBuffer.SetDepth(x, y, depth, i);
-                                    }
+                                    // var blendColor = Utility.BlendColors(color, m_FrameBuffer.GetColor(x, y, i), shader.BlendMode);
+                                    m_FrameBuffer.SetColor(x, y, color, i, true);
+                                    if (shader.ZWrite == ZWrite.On)
+                                        m_FrameBuffer.SetDepth(x, y, depth, i, true);
                                 }
                             }
                         }
