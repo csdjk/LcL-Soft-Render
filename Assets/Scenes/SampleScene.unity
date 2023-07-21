@@ -783,7 +783,7 @@ Camera:
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
-    m_Bits: 1
+    m_Bits: 0
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
@@ -826,7 +826,7 @@ MonoBehaviour:
   clearFlags: 1
   clearColor: {r: 0, g: 0, b: 0, a: 1}
   primitiveType: 0
-  msaaMode: 2
+  msaaMode: 4
   m_FrameInterval: 1
 --- !u!114 &963194230
 MonoBehaviour:

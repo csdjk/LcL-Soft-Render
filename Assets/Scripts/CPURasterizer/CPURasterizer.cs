@@ -519,7 +519,7 @@ namespace LcLSoftRender
             float2(-0.125f, -0.375f),
             float2(+0.375f, -0.375f)
         };
-        private float2 GetSampleOffset(int index, int sampleCount)
+        private float2 GetSampleOffset2(int index, int sampleCount)
         {
             // 根据采样点的数量和索引计算采样点的偏移量
             switch (sampleCount)
@@ -534,20 +534,15 @@ namespace LcLSoftRender
                     return 0;
             }
         }
-        private float2 GetSampleOffset2(int index, int sampleCount)
+        /// <summary>
+        /// 获取采样点的偏移量(效果比上面的好一点)
+        /// </summary>
+        /// <param name="index"></param>
+        /// <param name="sampleCount"></param>
+        /// <returns></returns>
+        private float2 GetSampleOffset(int index, int sampleCount)
         {
-            // 根据采样点的数量和索引计算采样点的偏移量
-            switch (sampleCount)
-            {
-                case 2:
-                    return new float2(index % 2, index / 2) / 2;
-                case 4:
-                    return new float2(index % 2, index / 2) / 2 + new float2(0.25f, 0.25f);
-                case 8:
-                    return new float2(index % 4, index / 4) / 4 + new float2(0.125f, 0.125f);
-                default:
-                    return 0;
-            }
+            return float2(0.5 + index) / sampleCount;
         }
 
         /// <summary>
