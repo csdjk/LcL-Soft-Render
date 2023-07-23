@@ -3,7 +3,7 @@ using UnityEngine;
 using Unity.Mathematics;
 using static Unity.Mathematics.math;
 
-namespace LcLSoftRender
+namespace LcLSoftRenderer
 {
     /// <summary>
     /// 变换工具类

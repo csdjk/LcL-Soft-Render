@@ -5,7 +5,7 @@ using Unity.Mathematics;
 using static Unity.Mathematics.math;
 using UnityEditor;
 
-namespace LcLSoftRender
+namespace LcLSoftRenderer
 {
     [ExecuteAlways]
     public class RenderObject : MonoBehaviour
@@ -47,6 +47,11 @@ namespace LcLSoftRender
             CalculateMatrix();
 
             var mesh = GetComponent<MeshFilter>()?.sharedMesh;
+            if(mesh == null)
+            {
+                Debug.LogError("MeshFilter is null");
+                return;
+            }
             var vertices = mesh.vertices;
             var indices = mesh.triangles;
             var uvs = mesh.uv;
@@ -121,7 +126,7 @@ namespace LcLSoftRender
         GUIStyle style = new GUIStyle();
         private void OnDrawGizmos()
         {
-            if (!debug) return;
+            if (!debug || !SoftRenderer.instance) return;
 
             style.normal.textColor = Color.green * 0.8f;
             style.fontSize = 15;
@@ -147,9 +152,9 @@ namespace LcLSoftRender
                         debugStr += $"\nWS({posWS.x},{posWS.y},{posWS.z})";
                     }
 
-                    if (SoftRender.instance.rasterizer != null)
+                    if (SoftRenderer.instance.rasterizer != null)
                     {
-                        var rasterizer = SoftRender.instance.rasterizer;
+                        var rasterizer = SoftRenderer.instance.rasterizer;
                         var positionCS = mul(rasterizer.MatrixVP, positionWS);
                         var ndc = positionCS.xyz / positionCS.w;
 

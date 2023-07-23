@@ -1,15 +1,21 @@
 
 using System.Collections.Generic;
+using Unity.Mathematics;
 using UnityEngine;
 
-namespace LcLSoftRender
+namespace LcLSoftRenderer
 {
     public interface IRasterizer
     {
-        // void Setup();
+        public abstract Texture ColorTexture { get; }
+        public MSAAMode MSAAMode { get; set; }
+        public float4x4 MatrixVP { get; }
+
         public abstract void Render(List<RenderObject> renderObjects);
         public virtual void SetDebugIndex(int debugIndex) { }
-        Texture ColorTexture { get; }
+        public void SetPrimitiveType(PrimitiveType primitiveType);
+        public void SetMatrixVP(float4x4 matrixVP);
+        public abstract void Clear(CameraClearFlags clearFlags, Color? clearColor = null, float depth = float.PositiveInfinity);
     }
 
 }

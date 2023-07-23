@@ -4,7 +4,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using static Unity.Mathematics.math;
 
-namespace LcLSoftRender
+namespace LcLSoftRenderer
 {
 
     public class AlphaBlendShader : LcLShader
@@ -35,7 +35,7 @@ namespace LcLSoftRender
         {
             VertexOutput output = new Attribute();
             output.positionCS = TransformTool.TransformObjectToHClip(vertex.position, MatrixMVP);
-            output.normal = mul(MatrixM, float4(vertex.normal, 0));
+            output.normalWS = mul(MatrixM, float4(vertex.normal, 0));
             output.uv = vertex.uv;
             // output.color = vertex.color;
             return output;
@@ -51,7 +51,7 @@ namespace LcLSoftRender
             vertexOutput = vertexOutput as Attribute;
 
             var uv = vertexOutput.uv;
-            var normalWS = normalize(vertexOutput.normal);
+            var normalWS = normalize(vertexOutput.normalWS);
 
             var tex = Utility.SampleTexture2D(mainTexture, uv);
 

@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEditor;
 using System.Linq;
 
-namespace LcLSoftRender
+namespace LcLSoftRenderer
 {
     [CustomEditor(typeof(RenderObject))]
     public class RenderObjectEditor : Editor

@@ -3,15 +3,22 @@ using UnityEditor;
 using UnityEngine.UIElements;
 using System.Linq;
 
-namespace LcLSoftRender
+namespace LcLSoftRenderer
 {
     public class LcLFrameDebugWindow : EditorWindow
     {
-        SoftRender m_SoftRender;
-        private int m_SelectedIndex = -1;
-        private ListView m_ListView;
-        private VisualElement m_SelectedObject;
-        private Button m_EnableButton;
+        SoftRenderer m_SoftRender;
+        ListView m_ListView;
+        VisualElement m_SelectedObject;
+        Button m_EnableButton;
+        Label m_ShaderLabel;
+        Label m_BlendLabel;
+        Label m_ZTestLabel;
+        Label m_ZWriteLabel;
+        Label m_CullLabel;
+
+        TwoPaneSplitView m_TwoPaneSplitView;
+
 
         [MenuItem("LcLTools/Frame Debug")]
         public static void ShowWindow()
@@ -21,12 +28,21 @@ namespace LcLSoftRender
 
         private void OnEnable()
         {
-            m_SoftRender = FindObjectOfType<SoftRender>();
+            var root = rootVisualElement;
+            m_SoftRender = FindObjectOfType<SoftRenderer>();
 
             m_EnableButton = new Button();
             m_EnableButton.text = "Enable";
             m_EnableButton.clicked += OnEnableDisableButtonClicked;
-            rootVisualElement.Add(m_EnableButton);
+            root.Add(m_EnableButton);
+
+
+            // 创建一个分割区域
+            m_TwoPaneSplitView = new TwoPaneSplitView(0, 250, TwoPaneSplitViewOrientation.Horizontal);
+            root.Add(m_TwoPaneSplitView);
+            m_TwoPaneSplitView.SetActive(false);
+
+
 
             m_ListView = new ListView();
             m_ListView.style.flexGrow = 1;
@@ -48,24 +64,85 @@ namespace LcLSoftRender
             m_ListView.selectionType = SelectionType.Single;
             m_ListView.onSelectedIndicesChange += (indices) =>
             {
-                m_SoftRender.DebugIndex(indices.First());
+                var index = indices.First();
+                m_SoftRender.DebugIndex(index);
+                UpdateInfoBox(index);
 #if UNITY_EDITOR
                 m_SoftRender.Render();
 #endif
             };
-            // m_ListView.onSelectionChange += objects =>
-            // {
-            //     Debug.Log(objects);
-            // };
-            rootVisualElement.Add(m_ListView);
+            m_TwoPaneSplitView.Add(m_ListView);
             m_ListView.style.display = DisplayStyle.None;
+
+
+            /// ================================ Info Box ================================
+            var infoBox = new Box();
+            infoBox.style.flexGrow = 1;
+            infoBox.style.flexDirection = FlexDirection.Column;
+            infoBox.style.fontSize = 14;
+            m_ShaderLabel = new Label()
+            {
+                style = {
+                    marginBottom = 10,
+                    marginLeft = 10,
+                    marginTop = 10,
+                    marginRight = 10,
+                }
+            };
+            infoBox.Add(m_ShaderLabel);
+
+            m_BlendLabel = new Label()
+            {
+                style = {
+                    marginBottom = 10,
+                    marginLeft = 10,
+                    marginTop = 10,
+                    marginRight = 10,
+                }
+            };
+            infoBox.Add(m_BlendLabel);
+
+            m_ZTestLabel = new Label()
+            {
+                style = {
+                    marginBottom = 10,
+                    marginLeft = 10,
+                    marginTop = 10,
+                    marginRight = 10,
+                }
+            };
+            infoBox.Add(m_ZTestLabel);
+
+            m_ZWriteLabel = new Label()
+            {
+                style = {
+                    marginBottom = 10,
+                    marginLeft = 10,
+                    marginTop = 10,
+                    marginRight = 10,
+                }
+            };
+            infoBox.Add(m_ZWriteLabel);
+
+            m_CullLabel = new Label()
+            {
+                style = {
+                    marginBottom = 10,
+                    marginLeft = 10,
+                    marginTop = 10,
+                    marginRight = 10,
+                }
+            };
+            infoBox.Add(m_CullLabel);
+
+            m_TwoPaneSplitView.Add(infoBox);
         }
 
         private void Update()
         {
             if (m_SoftRender == null)
             {
-                m_SoftRender = FindObjectOfType<SoftRender>();
+                m_SoftRender = FindObjectOfType<SoftRenderer>();
             }
             m_SoftRender.CollectRenderObjects();
         }
@@ -76,6 +153,7 @@ namespace LcLSoftRender
             {
                 m_ListView.style.display = DisplayStyle.Flex;
                 m_EnableButton.text = "Disable";
+                m_TwoPaneSplitView.SetActive(true);
 #if UNITY_EDITOR
                 m_SoftRender.Init();
                 m_SoftRender.Render();
@@ -85,7 +163,27 @@ namespace LcLSoftRender
             {
                 m_ListView.style.display = DisplayStyle.None;
                 m_EnableButton.text = "Enable";
+                m_TwoPaneSplitView.SetActive(false);
             }
+        }
+
+        void UpdateInfoBox(int index)
+        {
+            var renderObject = m_SoftRender.renderObjects[index];
+            var shader = renderObject.shader;
+            m_ShaderLabel.text = $"Shader: {shader.GetType().Name}";
+
+            var blendMode = shader.BlendMode;
+            m_BlendLabel.text = $"Blend: {blendMode}";
+
+            var zTest = shader.ZTest;
+            m_ZTestLabel.text = $"ZTest: {zTest}";
+
+            var zWrite = shader.ZWrite;
+            m_ZWriteLabel.text = $"ZWrite: {zWrite}";
+
+            var cullMode = shader.CullMode;
+            m_CullLabel.text = $"Cull: {cullMode}";
         }
     }
 }

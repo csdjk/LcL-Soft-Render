@@ -1,7 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using LcLSoftRender;
+using LcLSoftRenderer;
 using Unity.Mathematics;
 using UnityEngine;
 using static Unity.Mathematics.math;

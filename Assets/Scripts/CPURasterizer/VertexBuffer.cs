@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-namespace LcLSoftRender
+namespace LcLSoftRenderer
 {
 
     public class VertexBuffer
@@ -26,6 +26,23 @@ namespace LcLSoftRender
         public int Count()
         {
             return m_Vertex.Count;
+        }
+
+
+        public void Clear()
+        {
+            m_Vertex.Clear();
+        }
+
+        // convert to VertexData List
+        public List<VertexData> ToVertexDataList()
+        {
+            List<VertexData> vertexDataList = new List<VertexData>();
+            foreach (var vertex in m_Vertex)
+            {
+                vertexDataList.Add(vertex);
+            }
+            return vertexDataList;
         }
     }
 }

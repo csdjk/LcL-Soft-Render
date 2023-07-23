@@ -5,7 +5,7 @@ using Unity.Mathematics;
 using static Unity.Mathematics.math;
 
 
-namespace LcLSoftRender
+namespace LcLSoftRenderer
 {
 
     public static class Utility

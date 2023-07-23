@@ -7,11 +7,13 @@ using Unity.Mathematics;
 using static Unity.Mathematics.math;
 using System.Linq;
 
-namespace LcLSoftRender
+namespace LcLSoftRenderer
 {
     public class CPURasterizer : IRasterizer
     {
         PrimitiveType m_PrimitiveType = PrimitiveType.Triangle;
+        CameraClearFlags m_ClearFlags = CameraClearFlags.Color;
+
         MSAAMode m_MSAAMode = MSAAMode.MSAA4x;
         public MSAAMode MSAAMode
         {
@@ -77,14 +79,10 @@ namespace LcLSoftRender
                 model.shader.MatrixM = model.matrixM;
                 model.shader.MatrixVP = m_MatrixVP;
                 model.shader.MatrixMVP = CalculateMatrixMVP(model.matrixM);
-                if (model.isSkyBox)
+
+                if (m_ClearFlags != CameraClearFlags.Skybox && model.isSkyBox)
                 {
-                    // 将skybox的位置设置为相机的位置
-                    // Matrix4x4 matrixMVP = m_MatrixVP;
-                    // matrixMVP[0, 3] = 0;
-                    // matrixMVP[1, 3] = 0;
-                    // matrixMVP[2, 3] = 0;
-                    // model.shader.MatrixMVP = matrixMVP;
+                    continue;
                 }
                 DrawElements(model);
 
@@ -108,6 +106,22 @@ namespace LcLSoftRender
         {
             Color realClearColor = clearColor == null ? Color.clear : clearColor.Value;
             m_FrameBuffer.Clear(mask, realClearColor, depth);
+        }
+
+        public void Clear(CameraClearFlags clearFlags, Color? clearColor = null, float depth = float.PositiveInfinity)
+        {
+            m_ClearFlags = clearFlags;
+            switch (clearFlags)
+            {
+                case CameraClearFlags.Nothing:
+                    break;
+                case CameraClearFlags.Skybox:
+                    Clear(ClearMask.DEPTH);
+                    break;
+                default:
+                    Clear(ClearMask.COLOR | ClearMask.DEPTH, clearColor);
+                    break;
+            }
         }
 
         /// <summary>
@@ -171,8 +185,6 @@ namespace LcLSoftRender
             var position0 = TransformTool.ClipPositionToScreenPosition(vertex0.positionCS, m_Camera, out var ndcPos0);
             var position1 = TransformTool.ClipPositionToScreenPosition(vertex1.positionCS, m_Camera, out var ndcPos1);
             var position2 = TransformTool.ClipPositionToScreenPosition(vertex2.positionCS, m_Camera, out var ndcPos2);
-            Debug.Log($"position0:{position0},position1:{position1},position2:{position2}");
-            Debug.Log($"ndcPos0:{ndcPos0},ndcPos1:{ndcPos1},ndcPos2:{ndcPos2}");
             if (IsCull(ndcPos0, ndcPos1, ndcPos2, shader.CullMode))
             {
                 return;
@@ -325,7 +337,7 @@ namespace LcLSoftRender
             // 对每个顶点属性进行插值
             result.positionCS = lerp(start.positionCS, end.positionCS, t);
             result.positionOS = lerp(start.positionOS, end.positionOS, t);
-            result.normal = lerp(start.normal, end.normal, t);
+            result.normalWS = lerp(start.normalWS, end.normalWS, t);
             result.tangent = lerp(start.tangent, end.tangent, t);
             result.color = lerp(start.color, end.color, t);
             result.uv = lerp(start.uv, end.uv, t);
@@ -449,10 +461,6 @@ namespace LcLSoftRender
                     float4 color = 0;
                     bool isShaded = false;
                     bool isDiscard = false;
-                    if (x == 0 && y == 0)
-                    {
-                        Debug.Log($"position0:{position0},position1:{position1},position2:{position2}");
-                    }
                     // 对每个采样点进行采样
                     for (int i = 0; i < sampleCount; i++)
                     {
@@ -484,7 +492,6 @@ namespace LcLSoftRender
                                 }
                                 if (!isDiscard)
                                 {
-                                    // var blendColor = Utility.BlendColors(color, m_FrameBuffer.GetColor(x, y, i), shader.BlendMode);
                                     m_FrameBuffer.SetColor(x, y, color, i, true);
                                     if (shader.ZWrite == ZWrite.On)
                                         m_FrameBuffer.SetDepth(x, y, depth, i, true);
@@ -611,9 +618,11 @@ namespace LcLSoftRender
             var result = (VertexOutput)Activator.CreateInstance(v0.GetType());
             // result.positionCS = barycentric.x * v0.positionCS + barycentric.y * v1.positionCS + barycentric.z * v2.positionCS;
             result.positionOS = barycentric.x * v0.positionOS + barycentric.y * v1.positionOS + barycentric.z * v2.positionOS;
-            result.normal = barycentric.x * v0.normal + barycentric.y * v1.normal + barycentric.z * v2.normal;
+            result.normalWS = barycentric.x * v0.normalWS + barycentric.y * v1.normalWS + barycentric.z * v2.normalWS;
             result.color = barycentric.x * v0.color + barycentric.y * v1.color + barycentric.z * v2.color;
             result.uv = barycentric.x * v0.uv + barycentric.y * v1.uv + barycentric.z * v2.uv;
+            result.tangent = barycentric.x * v0.tangent + barycentric.y * v1.tangent + barycentric.z * v2.tangent;
+            result.viewDir = barycentric.x * v0.viewDir + barycentric.y * v1.viewDir + barycentric.z * v2.viewDir;
             return result;
         }
 

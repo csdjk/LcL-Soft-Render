@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Mathematics;
 
-namespace LcLSoftRender
+namespace LcLSoftRenderer
 {
     [System.Serializable]
     public class SkyboxImages
@@ -22,10 +22,11 @@ namespace LcLSoftRender
     {
         public float4 positionCS;
         public float4 positionOS;
-        public float4 normal;
+        public float4 normalWS;
         public float4 tangent;
         public float2 uv;
         public float4 color;
+        public float3 viewDir;
     }
 
     public abstract class LcLShader
@@ -51,6 +52,8 @@ namespace LcLSoftRender
         public virtual BlendMode BlendMode { get => m_BlendMode; set => m_BlendMode = value; }
 
         public Color baseColor = Color.white;
+        public Texture2D mainTexture;
+
 
         public float4x4 MatrixM { get; set; }
         public float4x4 MatrixVP { get; set; }

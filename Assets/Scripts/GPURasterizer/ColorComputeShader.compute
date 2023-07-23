@@ -1,0 +1,16 @@
+#pragma kernel CSMain
+
+RWTexture2D<float4> ResultTexture;
+
+[numthreads(8, 8, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    uint width, height;
+    ResultTexture.GetDimensions(width, height);
+    
+    float2 uv = (id.xy + 0.5) / float2(width, height);
+    float4 color = float4(uv.x, uv.y, 0, 1);
+    ResultTexture[id.xy] = color;
+    // ResultTexture[id.xy] = 1;
+
+}

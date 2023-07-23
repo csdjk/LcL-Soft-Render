@@ -1,4 +1,4 @@
-namespace LcLSoftRender
+namespace LcLSoftRenderer
 {
 
     public enum RasterizerType

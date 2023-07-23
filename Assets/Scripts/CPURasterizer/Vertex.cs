@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Mathematics;
 
-namespace LcLSoftRender
+namespace LcLSoftRenderer
 {
     public class Vertex
     {
@@ -66,5 +66,11 @@ namespace LcLSoftRender
             m_Tangent = tangent;
             m_Color = new float4(color.r, color.g, color.b, color.a);
         }
+
+        public static implicit operator VertexData(Vertex v)
+        {
+            return new VertexData(v.position, v.uv, v.normal, v.tangent, v.color);
+        }
+
     }
 }

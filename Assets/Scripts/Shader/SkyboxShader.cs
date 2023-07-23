@@ -4,7 +4,7 @@ using UnityEngine;
 using Unity.Mathematics;
 using static Unity.Mathematics.math;
 
-namespace LcLSoftRender
+namespace LcLSoftRenderer
 {
 
     public class SkyboxShader : LcLShader

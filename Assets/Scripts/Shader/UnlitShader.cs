@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Mathematics;
 
-namespace LcLSoftRender
+namespace LcLSoftRenderer
 {
 
     public class UnlitShader : LcLShader
@@ -14,8 +14,6 @@ namespace LcLSoftRender
         }
 
         /// ================================ Shader 属性 ================================
-        public Texture2D mainTexture;
-
 
         /// 
         internal class UnlitVertexOutput : VertexOutput
