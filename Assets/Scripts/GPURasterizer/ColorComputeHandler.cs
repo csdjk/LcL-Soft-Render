@@ -24,27 +24,36 @@ namespace LcLSoftRenderer
             {
                 return;
             }
-
-            // m_Buffer = new ComputeBuffer((m_Resolution.x * m_Resolution.y), sizeof(float4));
             m_ColorTexture = CreateRenderTexture(m_Resolution.x, m_Resolution.y, true, RenderTextureFormat.ARGBFloat);
-            m_KernelIndex = m_ComputeShader.FindKernel("CSMain");
-            // m_ComputeShader.SetBuffer(m_KernelIndex, "Result", m_Buffer);
-            m_ComputeShader.SetTexture(m_KernelIndex, "ResultTexture", m_ColorTexture);
-
-
+            // m_KernelIndex = m_ComputeShader.FindKernel("CSMain");
+            m_KernelIndex = m_ComputeShader.FindKernel("VertexProcess");
+            // m_ComputeShader.SetTexture(m_KernelIndex, "ResultTexture", m_ColorTexture);
         }
+
+        public void SetComputeBuffer(string name, ComputeBuffer buffer)
+        {
+            m_Buffer = buffer;
+            m_ComputeShader.SetBuffer(m_KernelIndex, name, buffer);
+        }
+
+        // public void SetComputeBuffer(string name, ComputeBuffer buffer)
+        // {
+        //     m_ComputeShader.SetBuffer(m_KernelIndex, name, buffer);
+        // }
 
         public override RenderTexture Run()
         {
             if (m_ComputeShader == null) return null;
-
-            m_ComputeShader.Dispatch(m_KernelIndex, m_Resolution.x / 8, m_Resolution.y / 8, 1);
+            m_ComputeShader.Dispatch(m_KernelIndex, m_Buffer.count / 128, 1, 1);
+            // m_ComputeShader.Dispatch(m_KernelIndex, m_Resolution.x / 8, m_Resolution.y / 8, 1);
             return m_ColorTexture;
         }
 
         public override void Dispose()
         {
             m_Buffer?.Dispose();
+            m_Buffer = null;
+            m_ColorTexture?.Release();
         }
     }
 }

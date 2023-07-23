@@ -166,6 +166,11 @@ namespace LcLSoftRenderer
            });
         }
 
+        public void Dispose()
+        {
+            m_Rasterizer?.Dispose();
+        }
+
         public void DebugIndex(int debugIndex)
         {
             m_Rasterizer?.SetDebugIndex(debugIndex);

@@ -695,6 +695,12 @@ namespace LcLSoftRenderer
             return interpolated;
         }
 
+
+        public void Dispose()
+        {
+            // m_FrameBuffer.Dispose();
+        }
+
         #endregion
 
 

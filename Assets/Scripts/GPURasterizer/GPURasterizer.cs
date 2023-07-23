@@ -37,7 +37,6 @@ namespace LcLSoftRenderer
 
         RenderTexture m_ColorTexture;
         ColorComputeHandler m_ColorComputeHandler;
-        ComputeBuffer m_VertexBuffer;
         public GPURasterizer(Camera camera, ComputeShader computeShader, MSAAMode msaaMode = MSAAMode.None)
         {
             m_MSAAMode = msaaMode;
@@ -46,8 +45,6 @@ namespace LcLSoftRenderer
 
             m_ColorComputeHandler = new ColorComputeHandler(computeShader, m_ViewportSize);
             m_ColorComputeHandler.Initialize();
-
-            // m_VertexBuffer = new ComputeBuffer(3, sizeof(float4) * 3);
         }
 
         public Texture ColorTexture
@@ -57,11 +54,39 @@ namespace LcLSoftRenderer
 
         public void Render(List<RenderObject> renderObjects)
         {
-            // m_VertexBuffer
+            int length = renderObjects.Count;
+            for (int i = 0; i < length; i++)
+            {
+                RenderObject model = renderObjects[i];
+                // model.shader.MatrixM = model.matrixM;
+                // model.shader.MatrixVP = m_MatrixVP;
+                // model.shader.MatrixMVP = CalculateMatrixMVP(model.matrixM);
+
+                // if (m_ClearFlags != CameraClearFlags.Skybox && model.isSkyBox)
+                // {
+                //     continue;
+                // }
+                // model.vertexBuffer.computeBuffer;
+                DrawElements(model);
+                if (IsDebugging() && i == m_DebugIndex)
+                {
+                    break;
+                }
+            }
+
+        }
+
+        public void DrawElements(RenderObject model)
+        {
+            if (model == null) return;
+            m_ColorComputeHandler.SetComputeBuffer("VertexBuffer", model.vertexBuffer.computeBuffer);
+
+
+
+
 
             m_ColorTexture = m_ColorComputeHandler.Run();
         }
-
         public void Clear(CameraClearFlags clearFlags, Color? clearColor = null, float depth = float.PositiveInfinity)
         {
             // m_ClearFlags = clearFlags;
@@ -86,6 +111,11 @@ namespace LcLSoftRenderer
         public void SetPrimitiveType(PrimitiveType primitiveType)
         {
             m_PrimitiveType = primitiveType;
+        }
+
+        public void Dispose()
+        {
+            m_ColorComputeHandler.Dispose();
         }
 
         #region Debugger

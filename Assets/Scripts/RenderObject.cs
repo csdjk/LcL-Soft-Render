@@ -47,7 +47,7 @@ namespace LcLSoftRenderer
             CalculateMatrix();
 
             var mesh = GetComponent<MeshFilter>()?.sharedMesh;
-            if(mesh == null)
+            if (mesh == null)
             {
                 Debug.LogError("MeshFilter is null");
                 return;
@@ -89,6 +89,8 @@ namespace LcLSoftRenderer
             }
         }
 
+
+
         /// <summary>
         /// 计算M矩阵
         /// https://blog.csdn.net/silangquan/article/details/50984641
@@ -116,8 +118,7 @@ namespace LcLSoftRenderer
         {
             this.shader = shader;
         }
-
-
+     
         #region Debug
         public bool debug = false;
         public bool showPositionOS = true;

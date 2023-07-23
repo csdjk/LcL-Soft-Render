@@ -1,6 +1,7 @@
 using Unity.Mathematics;
 namespace LcLSoftRenderer
 {
+    using System.Runtime.InteropServices;
 
     public struct VertexData
     {
@@ -18,6 +19,7 @@ namespace LcLSoftRenderer
             this.tangent = tangent;
             this.color = color;
         }
+        public static int size => Marshal.SizeOf<VertexData>();
 
     }
 }

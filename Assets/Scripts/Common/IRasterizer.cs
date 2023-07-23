@@ -16,6 +16,7 @@ namespace LcLSoftRenderer
         public void SetPrimitiveType(PrimitiveType primitiveType);
         public void SetMatrixVP(float4x4 matrixVP);
         public abstract void Clear(CameraClearFlags clearFlags, Color? clearColor = null, float depth = float.PositiveInfinity);
+        public abstract void Dispose();
     }
 
 }
