@@ -14,7 +14,6 @@ namespace LcLSoftRenderer
         public VertexBuffer(IEnumerable<Vertex> vertices)
         {
             AddVertices(vertices);
-            Debug.Log(VertexData.size);
             m_ComputeBuffer = new ComputeBuffer(m_VertexData.Count, VertexData.size);
             m_ComputeBuffer.SetData(m_VertexData);
 

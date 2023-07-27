@@ -44,7 +44,7 @@ namespace LcLSoftRenderer
                     shaderIndex = shaderNames.ToList().IndexOf(renderObject.shader.GetType().Name);
                 shaderIndex = EditorGUILayout.Popup("Shader", shaderIndex, shaderNames);
             }
-            if (EditorGUI.EndChangeCheck())
+            if (EditorGUI.EndChangeCheck() || renderObject.shader == null)
             {
                 var shaderName = shaderNames[shaderIndex];
                 if (!shaderDict.TryGetValue(shaderName, out var shader))

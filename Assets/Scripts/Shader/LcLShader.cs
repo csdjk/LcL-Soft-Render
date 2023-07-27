@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Mathematics;
+using System.Runtime.InteropServices;
 
 namespace LcLSoftRenderer
 {

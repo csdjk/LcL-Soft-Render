@@ -35,16 +35,23 @@ namespace LcLSoftRenderer
         LcLShader m_OverrideShader;
 
 
+        // ColorComputeHandler m_ColorComputeHandler;
+        ComputeShader m_ComputeShader;
         RenderTexture m_ColorTexture;
-        ColorComputeHandler m_ColorComputeHandler;
+        ComputeBuffer m_VertexOutputBuffer;
+        int m_VertexKernelIndex = -1;
+        // public ComputeBuffer computeBuffer => m_VertexOutputBuffer;
         public GPURasterizer(Camera camera, ComputeShader computeShader, MSAAMode msaaMode = MSAAMode.None)
         {
             m_MSAAMode = msaaMode;
             m_Camera = camera;
             m_ViewportSize = new int2(camera.pixelWidth, camera.pixelHeight);
+            m_ComputeShader = computeShader;
 
-            m_ColorComputeHandler = new ColorComputeHandler(computeShader, m_ViewportSize);
-            m_ColorComputeHandler.Initialize();
+            m_VertexKernelIndex = m_ComputeShader.FindKernel("VertexTransform");
+
+            // m_ColorComputeHandler = new ColorComputeHandler(computeShader, m_ViewportSize);
+            // m_ColorComputeHandler.Initialize();
         }
 
         public Texture ColorTexture
@@ -76,16 +83,40 @@ namespace LcLSoftRenderer
 
         }
 
+        public ComputeBuffer SetVertexOutputBuffer(int count)
+        {
+            if (m_VertexOutputBuffer != null)
+            {
+                m_VertexOutputBuffer.Release();
+                m_VertexOutputBuffer = null;
+            }
+            m_VertexOutputBuffer = new ComputeBuffer(count, VertexOutputData.size);
+
+            m_ComputeShader.SetBuffer(m_VertexKernelIndex, "VertexOutputBuffer", m_VertexOutputBuffer);
+            return m_VertexOutputBuffer;
+        }
+
         public void DrawElements(RenderObject model)
         {
-            if (model == null) return;
-            m_ColorComputeHandler.SetComputeBuffer("VertexBuffer", model.vertexBuffer.computeBuffer);
+            if (model == null || m_ComputeShader == null) return;
+            // m_ColorComputeHandler.SetComputeBuffer("VertexBuffer", model.vertexBuffer.computeBuffer);
+            m_ComputeShader.SetMatrix("MATRIX_M", model.matrixM);
+            m_ComputeShader.SetMatrix("MATRIX_VP", m_MatrixVP);
+            m_ComputeShader.SetBuffer(m_VertexKernelIndex, "VertexBuffer", model.vertexBuffer.computeBuffer);
+
+            SetVertexOutputBuffer(model.vertexBuffer.computeBuffer.count);
 
 
+            var threadGroupX = Mathf.CeilToInt(m_ViewportSize.x / 128);
+            m_ComputeShader.Dispatch(m_VertexKernelIndex, threadGroupX, 1, 1);
 
 
-
-            m_ColorTexture = m_ColorComputeHandler.Run();
+            var m_VertexOutputData = new VertexOutputData[m_VertexOutputBuffer.count];
+            m_VertexOutputBuffer.GetData(m_VertexOutputData);
+            foreach (var item in m_VertexOutputData)
+            {
+                Debug.Log(item.positionCS);
+            }
         }
         public void Clear(CameraClearFlags clearFlags, Color? clearColor = null, float depth = float.PositiveInfinity)
         {
@@ -115,7 +146,7 @@ namespace LcLSoftRenderer
 
         public void Dispose()
         {
-            m_ColorComputeHandler.Dispose();
+            // m_ColorComputeHandler.Dispose();
         }
 
         #region Debugger

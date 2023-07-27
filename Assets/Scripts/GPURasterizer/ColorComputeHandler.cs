@@ -26,7 +26,7 @@ namespace LcLSoftRenderer
             }
             m_ColorTexture = CreateRenderTexture(m_Resolution.x, m_Resolution.y, true, RenderTextureFormat.ARGBFloat);
             // m_KernelIndex = m_ComputeShader.FindKernel("CSMain");
-            m_KernelIndex = m_ComputeShader.FindKernel("VertexProcess");
+            m_KernelIndex = m_ComputeShader.FindKernel("VertexShader");
             // m_ComputeShader.SetTexture(m_KernelIndex, "ResultTexture", m_ColorTexture);
         }
 
@@ -36,16 +36,21 @@ namespace LcLSoftRenderer
             m_ComputeShader.SetBuffer(m_KernelIndex, name, buffer);
         }
 
-        // public void SetComputeBuffer(string name, ComputeBuffer buffer)
-        // {
-        //     m_ComputeShader.SetBuffer(m_KernelIndex, name, buffer);
-        // }
-
         public override RenderTexture Run()
         {
             if (m_ComputeShader == null) return null;
-            m_ComputeShader.Dispatch(m_KernelIndex, m_Buffer.count / 128, 1, 1);
+            var threadGroupX = Mathf.CeilToInt(m_Resolution.x / 128);
+            m_ComputeShader.Dispatch(m_KernelIndex, threadGroupX, 1, 1);
             // m_ComputeShader.Dispatch(m_KernelIndex, m_Resolution.x / 8, m_Resolution.y / 8, 1);
+
+            // get buffer
+            var m_VertexOutputData = new VertexOutputData[m_Buffer.count];
+            m_Buffer.GetData(m_VertexOutputData);
+            // log
+            foreach (var item in m_VertexOutputData)
+            {
+                Debug.Log(item.positionCS);
+            }
             return m_ColorTexture;
         }
 

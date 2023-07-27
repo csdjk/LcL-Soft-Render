@@ -1,5 +1,9 @@
 #pragma kernel CSMain
-#pragma kernel VertexProcess
+#pragma kernel VertexTransform
+
+float4x4 MATRIX_M;
+float4x4 MATRIX_VP;
+static float4x4 MATRIX_MVP = mul(MATRIX_VP, MATRIX_M);
 
 struct Vertex
 {
@@ -25,11 +29,23 @@ RWTexture2D<float4> ResultTexture;
 StructuredBuffer<Vertex> VertexBuffer;
 RWStructuredBuffer<VertexOutput> VertexOutputBuffer;
 
-[numthreads(128, 1, 1)]
-void VertexProcess(uint3 id : SV_DispatchThreadID)
+
+float3 ObjectToWorldNormal(float3 normal)
 {
+    return normalize(mul(normal, (float3x3)MATRIX_M));
+}
+
+[numthreads(128, 1, 1)]
+void VertexTransform(uint3 id : SV_DispatchThreadID)
+{
+
     Vertex data = VertexBuffer[id.x];
-    VertexOutputBuffer[id.x].positionCS = float4(data.position * 2, 1);
+    VertexOutputBuffer[id.x].positionCS = mul(MATRIX_MVP, float4(data.position, 1));
+    VertexOutputBuffer[id.x].positionOS = data.position;
+    VertexOutputBuffer[id.x].normalWS = ObjectToWorldNormal(data.normal);
+    VertexOutputBuffer[id.x].tangent = data.tangent;
+    VertexOutputBuffer[id.x].uv = data.uv;
+    VertexOutputBuffer[id.x].color = data.color;
 }
 
 [numthreads(8, 8, 1)]
