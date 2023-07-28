@@ -16,8 +16,6 @@ namespace LcLSoftRenderer
         }
 
         /// ================================ Shader 属性 ================================
-        public Texture2D mainTexture;
-
 
         /// <summary>
         /// 顶点着色器输出

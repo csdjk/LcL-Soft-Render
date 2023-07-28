@@ -15,7 +15,6 @@ namespace LcLSoftRenderer
             RenderQueue = RenderQueue.AlphaTest;
         }
         /// ================================ Shader 属性 ================================
-        public Texture2D mainTexture;
 
 
         /// ================================================================

@@ -208,14 +208,6 @@ namespace LcLSoftRenderer
                     return abs(srcColor - dstColor);
                 case BlendMode.Exclusion:
                     return srcColor + dstColor - 2 * srcColor * dstColor;
-                // case BlendMode.HSLHue:
-                //     return ColorExtensions.ColorFromHSL(srcColor.GetHue(), dstColor.GetSaturation(), dstColor.GetBrightness());
-                // case BlendMode.HSLSaturation:
-                //     return ColorExtensions.ColorFromHSL(srcColor.GetHue(), srcColor.GetSaturation() * dstColor.GetSaturation(), dstColor.GetBrightness());
-                // case BlendMode.HSLColor:
-                //     return ColorExtensions.ColorFromHSL(dstColor.GetHue(), dstColor.GetSaturation(), srcColor.GetBrightness());
-                // case BlendMode.HSLLuminosity:
-                //     return ColorExtensions.ColorFromHSL(dstColor.GetHue(), dstColor.GetSaturation(), srcColor.GetBrightness());
                 default:
                     return srcColor;
             }

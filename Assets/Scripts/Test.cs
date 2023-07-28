@@ -22,7 +22,7 @@ public class Test : MonoBehaviour
         for (int i = 0; i < 4; i++)
         {
             var offset = GetSampleOffset2(i, 4);
-            Debug.Log(offset);
+            // Debug.Log(offset);
         }
 
 
