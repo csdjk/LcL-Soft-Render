@@ -1,3 +1,6 @@
+#ifndef COMMON_INCLUDED
+#define COMMON_INCLUDED
+
 float4 ClearColor;
 float4 ViewportSize;
 float4x4 MATRIX_M;
@@ -69,8 +72,12 @@ float4 ClipPositionToScreenPosition(float4 clipPos, out float3 ndcPos)
     return screenPos;
 }
 
+float4 TransformObjectToHClip(float3 positionOS)
+{
+    return mul(MATRIX_MVP, float4(positionOS, 1));
+}
 
-float3 ObjectToWorldNormal(float3 normal)
+float3 TransformObjectToWorldNormal(float3 normal)
 {
     return normalize(mul(normal, (float3x3)MATRIX_M));
 }
@@ -131,9 +138,9 @@ inline bool IsCull(float3 v0, float3 v1, float3 v2, uint cullMode)
 /// <returns></returns>
 float3 BarycentricCoordinate(float2 P, float2 v0, float2 v1, float2 v2)
 {
-    var v2v0 = v2 - v0;
-    var v1v0 = v1 - v0;
-    var v0P = v0 - P;
+    float2 v2v0 = v2 - v0;
+    float2 v1v0 = v1 - v0;
+    float2 v0P = v0 - P;
     float3 u = cross(float3(v2v0.x, v1v0.x, v0P.x), float3(v2v0.y, v1v0.y, v0P.y));
     if (abs(u.z) < 1) return float3(-1, 1, 1);
     return float3(1 - (u.x + u.y) / u.z, u.y / u.z, u.x / u.z);
@@ -167,7 +174,7 @@ bool DepthTest(float depth, float depthBuffer, uint zTest)
 
 float4 BlendColors(float4 srcColor, float4 dstColor, uint blendMode)
 {
-    switch (blendMode)
+    switch(blendMode)
     {
         case BlendMode_None:
             return srcColor;
@@ -188,13 +195,13 @@ float4 BlendColors(float4 srcColor, float4 dstColor, uint blendMode)
         case BlendMode_Lighten:
             return max(srcColor, dstColor);
         case BlendMode_ColorDodge:
-            return dstColor.Equals(float4(0)) ? dstColor : min(float4(1), srcColor / (float4(1) - dstColor));
+            return dstColor == 0 ? dstColor : min(1, srcColor / (1 - dstColor));
         case BlendMode_ColorBurn:
-            return dstColor.Equals(float4(1)) ? dstColor : max(float4(0), (float4(1) - srcColor) / dstColor);
+            return dstColor == 1 ? dstColor : max(0, (1 - srcColor) / dstColor);
         case BlendMode_SoftLight:
             return dstColor * (2 * srcColor + srcColor * srcColor - 2 * srcColor * dstColor + 2 * dstColor - 2 * dstColor * dstColor);
         case BlendMode_HardLight:
-            return BlendColors(dstColor, srcColor, BlendMode_Overlay);
+            return srcColor.w < 0.5f ? 2 * dstColor * srcColor : 1 - 2 * (1 - dstColor) * (1 - srcColor);
         case BlendMode_Difference:
             return abs(srcColor - dstColor);
         case BlendMode_Exclusion:
@@ -203,3 +210,9 @@ float4 BlendColors(float4 srcColor, float4 dstColor, uint blendMode)
             return srcColor;
     }
 }
+
+float2 GetSampleOffset(int index, int sampleCount)
+{
+    return float2(0.5 + index) / sampleCount;
+}
+#endif

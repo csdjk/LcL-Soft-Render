@@ -74,7 +74,7 @@ namespace LcLSoftRenderer
             m_ComputeShader.SetTexture(m_RasterizeTriangleKernelIndex, m_ColorProp, m_ColorTexture);
             m_ComputeShader.SetTexture(m_ClearKernelIndex, m_ColorProp, m_ColorTexture);
 
-            m_DepthTexture = new RenderTexture(m_ViewportSize.x, m_ViewportSize.y, 0, RenderTextureFormat.Depth);
+            m_DepthTexture = new RenderTexture(m_ViewportSize.x, m_ViewportSize.y, 1, RenderTextureFormat.R16);
             m_DepthTexture.enableRandomWrite = true;
             m_DepthTexture.Create();
             m_ComputeShader.SetTexture(m_WireFrameKernelIndex, m_DepthProp, m_DepthTexture);
@@ -195,9 +195,7 @@ namespace LcLSoftRenderer
             // var debugBuffer = GetDebugDataBuffer(3);
             // m_ComputeShader.SetBuffer(m_WireFrameKernelIndex, "DebugDataBuffer", debugBuffer);
             m_ComputeShader.SetInt("_CullMode", (int)shader.CullMode);
-
             m_ComputeShader.Dispatch(m_WireFrameKernelIndex, threadGroupX, 1, 1);
-
             // debugBuffer.GetData(m_DebugData);
             // foreach (var item in m_DebugData)
             // {
@@ -213,6 +211,10 @@ namespace LcLSoftRenderer
             m_ComputeShader.SetVector(m_ViewportSizeProp, new Vector4(m_ViewportSize.x, m_ViewportSize.y, 0, 0));
             m_ComputeShader.SetVector("_BaseColor", shader.baseColor);
             m_ComputeShader.SetInt("_CullMode", (int)shader.CullMode);
+            m_ComputeShader.SetInt("_ZWrite", (int)shader.ZWrite);
+            m_ComputeShader.SetInt("_ZTest", (int)shader.ZTest);
+            m_ComputeShader.SetInt("_BlendMode", (int)shader.BlendMode);
+
             // m_ComputeShader.SetInts("_SampleCount", new int[] { SampleCount, SampleCount });
             m_ComputeShader.Dispatch(m_RasterizeTriangleKernelIndex, threadGroupX, 1, 1);
         }
@@ -220,17 +222,7 @@ namespace LcLSoftRenderer
         public void Clear(CameraClearFlags clearFlags, Color? clearColor = null, float depth = float.PositiveInfinity)
         {
             m_ClearFlags = clearFlags;
-            // switch (clearFlags)
-            // {
-            //     case CameraClearFlags.Nothing:
-            //         break;
-            //     case CameraClearFlags.Skybox:
-            //         Clear(ClearMask.DEPTH);
-            //         break;
-            //     default:
-            //         Clear(ClearMask.COLOR | ClearMask.DEPTH, clearColor);
-            //         break;
-            // }
+            
             var color = clearColor == null ? Color.clear : clearColor.Value;
             m_ComputeShader.SetVector(m_ClearColorProp, color);
             m_ComputeShader.Dispatch(m_ClearKernelIndex, textureThreadGroup.x, textureThreadGroup.y, 1);

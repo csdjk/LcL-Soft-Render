@@ -1,0 +1,40 @@
+#pragma kernel Clear
+#pragma kernel VertexTransform
+#pragma kernel WireFrameTriangle
+#pragma kernel RasterizeTriangle
+
+#include "../Libs/Input.hlsl"
+#include "../Libs/Common.hlsl"
+
+float4 _BaseColor;
+
+VertexOutput UnlitVertex(Vertex input)
+{
+    VertexOutput output = (VertexOutput)0;
+
+    output.positionCS = TransformObjectToHClip(input.position);
+    output.positionOS = float4(input.position, 1);
+    float3 normalWS = TransformObjectToWorldNormal(input.normal);
+    output.normalWS = float4(normalWS, 1);
+    output.tangent = input.tangent;
+    output.uv = input.uv;
+    output.color = input.color;
+
+
+    return output;
+}
+
+
+float4 FragmentShader()
+{
+    return _BaseColor;
+}
+
+
+
+
+
+#define vertex UnlitVertex
+#define fragment FragmentShader
+
+#include "../Libs/ColorComputeShader.hlsl"

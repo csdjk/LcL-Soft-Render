@@ -63,7 +63,7 @@ void VertexTransform(uint3 id : SV_DispatchThreadID)
     Vertex data = VertexBuffer[id.x];
     VertexOutputBuffer[id.x].positionCS = mul(MATRIX_MVP, float4(data.position, 1));
     VertexOutputBuffer[id.x].positionOS = float4(data.position, 1);
-    float3 normalWS = ObjectToWorldNormal(data.normal);
+    float3 normalWS = TransformObjectToWorldNormal(data.normal);
     VertexOutputBuffer[id.x].normalWS = float4(normalWS, 1);
     VertexOutputBuffer[id.x].tangent = data.tangent;
     VertexOutputBuffer[id.x].uv = data.uv;
@@ -81,6 +81,7 @@ VertexOutput InterpolateVertexOutputs(VertexOutput start, VertexOutput end, floa
     result.tangent = lerp(start.tangent, end.tangent, t);
     result.color = lerp(start.color, end.color, t);
     result.uv = lerp(start.uv, end.uv, t);
+    result.viewDir = lerp(start.viewDir, end.viewDir, t);
     return result;
 }
 
@@ -305,13 +306,6 @@ void RasterizeTriangleDraw(VertexOutput vertex0, VertexOutput vertex1, VertexOut
             }
         }
     }
-
-
-
-
-    DrawLine(screenPos0.xyz, screenPos1.xyz, _BaseColor);
-    DrawLine(screenPos1.xyz, screenPos2.xyz, _BaseColor);
-    DrawLine(screenPos2.xyz, screenPos0.xyz, _BaseColor);
 }
 
 [numthreads(128, 1, 1)]
