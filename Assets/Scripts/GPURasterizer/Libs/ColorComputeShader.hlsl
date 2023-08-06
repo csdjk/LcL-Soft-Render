@@ -5,7 +5,8 @@ uint _CullMode;
 uint _ZTest;
 uint _ZWrite;
 uint _BlendMode;
-
+uint _SampleCount;
+uint _ScreenZoom;
 // ================================ Debug ================================
 struct DebugData
 {
@@ -35,6 +36,13 @@ void Clear(uint3 id : SV_DispatchThreadID)
 void VertexTransform(uint3 id : SV_DispatchThreadID)
 {
     VertexOutputBuffer[id.x] = vertex(VertexBuffer[id.x]);
+}
+//DepthTexture是一个_SampleCount倍数的renderTexture,例如原来的RT是1024*1024,那么DepthTexture就是1024*1024*_SampleCount
+float GetDepth(int2 screenPos, int sampleIndex)
+{
+    int x = sampleIndex % _ScreenZoom;
+    int y = sampleIndex / _ScreenZoom;
+    return DepthTexture[screenPos];
 }
 
 float GetDepth(int2 screenPos)
@@ -330,7 +338,7 @@ void RasterizeTriangleMSAA(VertexOutput vertex0, VertexOutput vertex1, VertexOut
                     // 透视矫正
                     float z = 1 / (barycentric.x / position0.w + barycentric.y / position1.w + barycentric.z / position2.w);
                     float depth = barycentric.x * position0.z + barycentric.y * position1.z + barycentric.z * position2.z;
-                    var depthBuffer = m_FrameBuffer.GetDepth(x, y, i);
+                    var depthBuffer = GetDepth(x, y, i);
                     // 深度测试
                     if (DepthTest(depth, depthBuffer, shader.ZTest))
                     {

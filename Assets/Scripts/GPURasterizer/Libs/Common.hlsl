@@ -213,6 +213,6 @@ float4 BlendColors(float4 srcColor, float4 dstColor, uint blendMode)
 
 float2 GetSampleOffset(int index, int sampleCount)
 {
-    return float2(0.5 + index) / sampleCount;
+    return (float2)(0.5 + index) / sampleCount;
 }
 #endif

@@ -34,7 +34,6 @@ struct VertexOutput
 // ================================ Debug ================================
 struct DebugData
 {
-    ///
     float4 data0;
 };
 RWStructuredBuffer<DebugData> DebugDataBuffer;
@@ -308,6 +307,7 @@ void RasterizeTriangleDraw(VertexOutput vertex0, VertexOutput vertex1, VertexOut
     }
 }
 
+
 [numthreads(128, 1, 1)]
 void RasterizeTriangle(uint3 id : SV_DispatchThreadID)
 {
@@ -328,4 +328,3 @@ void RasterizeTriangle(uint3 id : SV_DispatchThreadID)
         RasterizeTriangleDraw(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1]);
     }
 }
-

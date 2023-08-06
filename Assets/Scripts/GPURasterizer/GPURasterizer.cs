@@ -27,30 +27,33 @@ namespace LcLSoftRenderer
         public bool IsMSAA => m_MSAAMode != MSAAMode.None;
         public float4x4 MatrixVP => m_MatrixVP;
         int2 m_ViewportSize;
+        int m_ScreenZoom = 1;
         Camera m_Camera;
         float4x4 m_Model;
         float4x4 m_MatrixVP;
         float4x4 m_MatrixMVP;
         public float4x4 MatrixMVP => m_MatrixMVP;
-        LcLShader m_OverrideShader;
-
 
         ComputeShader m_ComputeShader;
         RenderTexture m_ColorTexture;
         RenderTexture m_DepthTexture;
         ComputeBuffer m_VertexOutputBuffer;
-        string m_VertexProp = "VertexBuffer";
-        string m_VertexOutputProp = "VertexOutputBuffer";
-        string m_TriangleProp = "TriangleBuffer";
-        string m_ColorProp = "ColorTexture";
-        string m_DepthProp = "DepthTexture";
-        string m_ClearColorProp = "ClearColor";
-        string m_ViewportSizeProp = "ViewportSize";
+        readonly string m_VertexProp = "VertexBuffer";
+        readonly string m_VertexOutputProp = "VertexOutputBuffer";
+        readonly string m_TriangleProp = "TriangleBuffer";
+        readonly string m_ColorProp = "ColorTexture";
+        readonly string m_DepthProp = "DepthTexture";
+        readonly string m_ClearColorProp = "ClearColor";
+        readonly string m_ViewportSizeProp = "ViewportSize";
+        readonly string m_SampleCountProp = "_SampleCount";
+        readonly string m_ScreenZoomProp = "_ScreenZoom";
+
 
         int m_ClearKernelIndex = -1;
         int m_VertexKernelIndex = -1;
         int m_RasterizeTriangleKernelIndex = -1;
         int m_WireFrameKernelIndex = -1;
+
         // int vertexThreadGroupX => (int)ceil(m_ViewportSize.x / 128);
         int2 textureThreadGroup => (int2)ceil((float2)m_ViewportSize / (float2)8);
 
@@ -67,14 +70,17 @@ namespace LcLSoftRenderer
             m_WireFrameKernelIndex = m_ComputeShader.FindKernel("WireFrameTriangle");
             m_RasterizeTriangleKernelIndex = m_ComputeShader.FindKernel("RasterizeTriangle");
 
-            m_ColorTexture = new RenderTexture(m_ViewportSize.x, m_ViewportSize.y, 0, RenderTextureFormat.ARGBFloat);
+            // var rtSize = m_ViewportSize * (int)m_MSAAMode;
+            m_ScreenZoom = Mathf.CeilToInt(sqrt((int)m_MSAAMode));
+            var rtSize = m_ViewportSize * m_ScreenZoom;
+            m_ColorTexture = new RenderTexture(rtSize.x, rtSize.y, 0, RenderTextureFormat.ARGBFloat);
             m_ColorTexture.enableRandomWrite = true;
             m_ColorTexture.Create();
             m_ComputeShader.SetTexture(m_WireFrameKernelIndex, m_ColorProp, m_ColorTexture);
             m_ComputeShader.SetTexture(m_RasterizeTriangleKernelIndex, m_ColorProp, m_ColorTexture);
             m_ComputeShader.SetTexture(m_ClearKernelIndex, m_ColorProp, m_ColorTexture);
 
-            m_DepthTexture = new RenderTexture(m_ViewportSize.x, m_ViewportSize.y, 1, RenderTextureFormat.R16);
+            m_DepthTexture = new RenderTexture(rtSize.x, rtSize.y, 1, RenderTextureFormat.R16);
             m_DepthTexture.enableRandomWrite = true;
             m_DepthTexture.Create();
             m_ComputeShader.SetTexture(m_WireFrameKernelIndex, m_DepthProp, m_DepthTexture);
@@ -86,7 +92,6 @@ namespace LcLSoftRenderer
         {
             get => m_ColorTexture;
         }
-
 
         public void Render(List<RenderObject> renderObjects)
         {
@@ -215,14 +220,16 @@ namespace LcLSoftRenderer
             m_ComputeShader.SetInt("_ZTest", (int)shader.ZTest);
             m_ComputeShader.SetInt("_BlendMode", (int)shader.BlendMode);
 
-            // m_ComputeShader.SetInts("_SampleCount", new int[] { SampleCount, SampleCount });
+            m_ComputeShader.SetInt(m_SampleCountProp, SampleCount);
+            m_ComputeShader.SetInt(m_ScreenZoomProp, m_ScreenZoom);
+
             m_ComputeShader.Dispatch(m_RasterizeTriangleKernelIndex, threadGroupX, 1, 1);
         }
 
         public void Clear(CameraClearFlags clearFlags, Color? clearColor = null, float depth = float.PositiveInfinity)
         {
             m_ClearFlags = clearFlags;
-            
+
             var color = clearColor == null ? Color.clear : clearColor.Value;
             m_ComputeShader.SetVector(m_ClearColorProp, color);
             m_ComputeShader.Dispatch(m_ClearKernelIndex, textureThreadGroup.x, textureThreadGroup.y, 1);
