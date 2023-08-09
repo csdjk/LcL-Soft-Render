@@ -649,7 +649,7 @@ MonoBehaviour:
   clearColor: {r: 0, g: 0, b: 0, a: 1}
   primitiveType: 0
   msaaMode: 1
-  frameInterval: 2
+  frameInterval: 0.1
   colorComputeShader: {fileID: 7200000, guid: 93aca3b16d8457d45938296b44bae7d1, type: 3}
 --- !u!114 &963194230
 MonoBehaviour:
@@ -710,7 +710,7 @@ MonoBehaviour:
         m_RenderQueue: 2000
         m_ZWrite: 1
         m_ZTest: 4
-        m_CullMode: 2
+        m_CullMode: 0
         m_BlendMode: 0
         baseColor: {r: 1, g: 1, b: 1, a: 1}
         mainTexture: {fileID: 0}
@@ -810,7 +810,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1834890338
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -1,6 +1,8 @@
 #ifndef COMMON_INCLUDED
 #define COMMON_INCLUDED
 
+
+
 float4 ClearColor;
 float4 ViewportSize;
 float4x4 MATRIX_M;
@@ -55,6 +57,13 @@ static const int BlendMode_SoftLight = 12;
 static const int BlendMode_HardLight = 13;
 static const int BlendMode_Difference = 14;
 static const int BlendMode_Exclusion = 15;
+
+// ================================ MSAA Mode ================================
+static const int MSAA_None = 1;
+static const int MSAA_2x = 2;
+static const int MSAA_4x = 4;
+static const int MSAA_8x = 8;
+
 
 float4 ClipPositionToScreenPosition(float4 clipPos, out float3 ndcPos)
 {
@@ -126,6 +135,17 @@ inline bool IsCull(float3 v0, float3 v1, float3 v2, uint cullMode)
             return false;
     }
 }
+
+// bool isDiscard = false;
+
+// void InitClip()
+// {
+//     isDiscard = false;
+// }
+// void Clip(float value)
+// {
+//     isDiscard = (value <= 0.0);
+// }
 
 /// <summary>
 /// 高效的重心坐标算法
@@ -213,6 +233,10 @@ float4 BlendColors(float4 srcColor, float4 dstColor, uint blendMode)
 
 float2 GetSampleOffset(int index, int sampleCount)
 {
-    return (float2)(0.5 + index) / sampleCount;
+    return (float2) (0.5 + (float)index) / (float2)sampleCount;
 }
+
+
+
+
 #endif

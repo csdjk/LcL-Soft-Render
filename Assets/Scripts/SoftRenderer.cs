@@ -41,7 +41,8 @@ namespace LcLSoftRenderer
 
         public PrimitiveType primitiveType = PrimitiveType.Triangle;
         public MSAAMode msaaMode = MSAAMode.None;
-        public int frameInterval = 2;
+        [Range(0.01f, 10)]
+        public float frameInterval = 0.1f;
         int m_FrameCount = 0;
 
         Camera m_Camera;
@@ -97,9 +98,6 @@ namespace LcLSoftRenderer
             SortRenderObjects();
         }
 
-
-
-
         private void Update()
         {
             if (!Application.isPlaying)
@@ -111,6 +109,7 @@ namespace LcLSoftRenderer
             m_FrameCount = Time.frameCount;
             Render();
         }
+
         public void Render()
         {
             Global.ambientColor = RenderSettings.ambientLight.ToFloat4();

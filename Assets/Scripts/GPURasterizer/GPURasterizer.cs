@@ -35,7 +35,9 @@ namespace LcLSoftRenderer
         public float4x4 MatrixMVP => m_MatrixMVP;
 
         ComputeShader m_ComputeShader;
+        ComputeShader m_CommonShader;
         RenderTexture m_ColorTexture;
+        RenderTexture m_ColorMSAATexture;
         RenderTexture m_DepthTexture;
         ComputeBuffer m_VertexOutputBuffer;
         readonly string m_VertexProp = "VertexBuffer";
@@ -47,70 +49,57 @@ namespace LcLSoftRenderer
         readonly string m_ViewportSizeProp = "ViewportSize";
         readonly string m_SampleCountProp = "_SampleCount";
         readonly string m_ScreenZoomProp = "_ScreenZoom";
+        readonly string m_ColorMSAAProp = "ColorTextureMSAA";
 
 
         int m_ClearKernelIndex = -1;
+        int m_ClearMSAAKernelIndex = -1;
         int m_VertexKernelIndex = -1;
         int m_RasterizeTriangleKernelIndex = -1;
+        int m_RasterizeTriangleMSAAKernelIndex = -1;
         int m_WireFrameKernelIndex = -1;
+        int m_ResolveKernelIndex = -1;
 
-        // int vertexThreadGroupX => (int)ceil(m_ViewportSize.x / 128);
         int2 textureThreadGroup => (int2)ceil((float2)m_ViewportSize / (float2)8);
 
-        // public ComputeBuffer computeBuffer => m_VertexOutputBuffer;
+        public Texture ColorTexture => m_ColorTexture;
+
         public GPURasterizer(Camera camera, ComputeShader computeShader, MSAAMode msaaMode = MSAAMode.None)
         {
             m_MSAAMode = msaaMode;
             m_Camera = camera;
             m_ViewportSize = new int2(camera.pixelWidth, camera.pixelHeight);
-            m_ComputeShader = computeShader;
+            m_CommonShader = computeShader;
 
-            m_ClearKernelIndex = m_ComputeShader.FindKernel("Clear");
-            m_VertexKernelIndex = m_ComputeShader.FindKernel("VertexTransform");
-            m_WireFrameKernelIndex = m_ComputeShader.FindKernel("WireFrameTriangle");
-            m_RasterizeTriangleKernelIndex = m_ComputeShader.FindKernel("RasterizeTriangle");
+            m_ClearKernelIndex = m_CommonShader.FindKernel("Clear");
+            m_ClearMSAAKernelIndex = m_CommonShader.FindKernel("ClearMSAA");
+            m_ResolveKernelIndex = m_CommonShader.FindKernel("Resolve");
 
-            // var rtSize = m_ViewportSize * (int)m_MSAAMode;
             m_ScreenZoom = Mathf.CeilToInt(sqrt((int)m_MSAAMode));
-            var rtSize = m_ViewportSize * m_ScreenZoom;
-            m_ColorTexture = new RenderTexture(rtSize.x, rtSize.y, 0, RenderTextureFormat.ARGBFloat);
+            var msaaRtSize = m_ViewportSize * m_ScreenZoom;
+            m_ColorTexture = new RenderTexture(m_ViewportSize.x, m_ViewportSize.y, 0, RenderTextureFormat.ARGBFloat);
             m_ColorTexture.enableRandomWrite = true;
             m_ColorTexture.Create();
-            m_ComputeShader.SetTexture(m_WireFrameKernelIndex, m_ColorProp, m_ColorTexture);
-            m_ComputeShader.SetTexture(m_RasterizeTriangleKernelIndex, m_ColorProp, m_ColorTexture);
-            m_ComputeShader.SetTexture(m_ClearKernelIndex, m_ColorProp, m_ColorTexture);
+            m_CommonShader.SetTexture(m_ClearKernelIndex, m_ColorProp, m_ColorTexture);
+            m_CommonShader.SetTexture(m_ClearMSAAKernelIndex, m_ColorProp, m_ColorTexture);
 
-            m_DepthTexture = new RenderTexture(rtSize.x, rtSize.y, 1, RenderTextureFormat.R16);
+            // Depth Buffer
+            m_DepthTexture = new RenderTexture(msaaRtSize.x, msaaRtSize.y, 1, RenderTextureFormat.R16);
             m_DepthTexture.enableRandomWrite = true;
             m_DepthTexture.Create();
-            m_ComputeShader.SetTexture(m_WireFrameKernelIndex, m_DepthProp, m_DepthTexture);
-            m_ComputeShader.SetTexture(m_RasterizeTriangleKernelIndex, m_DepthProp, m_DepthTexture);
-            m_ComputeShader.SetTexture(m_ClearKernelIndex, m_DepthProp, m_DepthTexture);
-        }
+            m_CommonShader.SetTexture(m_ClearKernelIndex, m_DepthProp, m_DepthTexture);
+            m_CommonShader.SetTexture(m_ClearMSAAKernelIndex, m_DepthProp, m_DepthTexture);
 
-        public Texture ColorTexture
-        {
-            get => m_ColorTexture;
-        }
-
-        public void Render(List<RenderObject> renderObjects)
-        {
-            int length = renderObjects.Count;
-            for (int i = 0; i < length; i++)
+            if (IsMSAA)
             {
-                RenderObject model = renderObjects[i];
-                // if (m_ClearFlags != CameraClearFlags.Skybox && model.isSkyBox)
-                // {
-                //     continue;
-                // }
-                // model.vertexBuffer.computeBuffer;
-                DrawElements(model);
-                if (IsDebugging() && i == m_DebugIndex)
-                {
-                    break;
-                }
-            }
+                m_ColorMSAATexture = new RenderTexture(msaaRtSize.x, msaaRtSize.y, 0, RenderTextureFormat.ARGBFloat);
+                m_ColorMSAATexture.enableRandomWrite = true;
+                m_ColorMSAATexture.Create();
 
+                m_CommonShader.SetTexture(m_ClearMSAAKernelIndex, m_ColorMSAAProp, m_ColorMSAATexture);
+                m_CommonShader.SetTexture(m_ResolveKernelIndex, m_ColorProp, m_ColorTexture);
+                m_CommonShader.SetTexture(m_ResolveKernelIndex, m_ColorMSAAProp, m_ColorMSAATexture);
+            }
         }
 
         public ComputeBuffer SetVertexOutputBuffer(int count)
@@ -126,12 +115,62 @@ namespace LcLSoftRenderer
             return m_VertexOutputBuffer;
         }
 
+
+        public void SetPass(LcLShader shader)
+        {
+            if (shader == null) return;
+
+            m_VertexKernelIndex = m_ComputeShader.FindKernel("VertexTransform");
+            m_WireFrameKernelIndex = m_ComputeShader.FindKernel("WireFrameTriangle");
+            m_RasterizeTriangleKernelIndex = m_ComputeShader.FindKernel("RasterizeTriangle");
+            m_RasterizeTriangleMSAAKernelIndex = m_ComputeShader.FindKernel("RasterizeTriangleMSAA");
+
+            m_ComputeShader.SetTexture(m_WireFrameKernelIndex, m_ColorProp, m_ColorTexture);
+            m_ComputeShader.SetTexture(m_RasterizeTriangleKernelIndex, m_ColorProp, m_ColorTexture);
+            m_ComputeShader.SetTexture(m_RasterizeTriangleMSAAKernelIndex, m_ColorProp, m_ColorTexture);
+
+            m_ComputeShader.SetTexture(m_WireFrameKernelIndex, m_DepthProp, m_DepthTexture);
+            m_ComputeShader.SetTexture(m_RasterizeTriangleKernelIndex, m_DepthProp, m_DepthTexture);
+            m_ComputeShader.SetTexture(m_RasterizeTriangleMSAAKernelIndex, m_DepthProp, m_DepthTexture);
+
+            if (IsMSAA)
+            {
+                m_ComputeShader.SetTexture(m_RasterizeTriangleMSAAKernelIndex, m_ColorMSAAProp, m_ColorMSAATexture);
+            }
+
+            m_ComputeShader.SetVector(m_ViewportSizeProp, new Vector4(m_ViewportSize.x, m_ViewportSize.y, 0, 0));
+            m_ComputeShader.SetVector("_BaseColor", shader.baseColor);
+            m_ComputeShader.SetInt("_CullMode", (int)shader.CullMode);
+            m_ComputeShader.SetInt("_ZWrite", (int)shader.ZWrite);
+            m_ComputeShader.SetInt("_ZTest", (int)shader.ZTest);
+            m_ComputeShader.SetInt("_BlendMode", (int)shader.BlendMode);
+        }
+
+
+        public void Render(List<RenderObject> renderObjects)
+        {
+            int length = renderObjects.Count;
+            for (int i = 0; i < length; i++)
+            {
+                RenderObject model = renderObjects[i];
+                DrawElements(model);
+                if (IsDebugging() && i == m_DebugIndex)
+                {
+                    break;
+                }
+            }
+
+            Resolve();
+        }
+
+
         public void DrawElements(RenderObject model)
         {
-            if (model == null || m_ComputeShader == null) return;
+            if (model == null) return;
             var vertexBuffer = model.vertexBuffer.computeBuffer;
             var indexBuffer = model.indexBuffer.computeBuffer;
-            var shader = model.shader;
+            m_ComputeShader = model.computeShader;
+            SetPass(model.shader);
 
             // 顶点变换
             m_ComputeShader.SetMatrix("MATRIX_M", model.matrixM);
@@ -145,24 +184,13 @@ namespace LcLSoftRenderer
             switch (m_PrimitiveType)
             {
                 case PrimitiveType.Line:
-                    WireFrameTriangle(indexBuffer, shader);
+                    WireFrameTriangle(indexBuffer);
                     break;
                 case PrimitiveType.Triangle:
-                    RasterizeTriangle(indexBuffer, shader);
+                    RasterizeTriangle(indexBuffer);
                     break;
-                    // if (IsMSAA)
-                    //     RasterizeTriangleMSAA(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1], shader, SampleCount);
-                    // else
-                    // RasterizeTriangle(indexBuffer, shader);
-                    // break;
             }
 
-            // var m_VertexOutputData = new VertexOutputData[m_VertexOutputBuffer.count];
-            // m_VertexOutputBuffer.GetData(m_VertexOutputData);
-            // foreach (var item in m_VertexOutputData)
-            // {
-            //     Debug.Log(item.positionCS);
-            // }
         }
 
 
@@ -186,44 +214,48 @@ namespace LcLSoftRenderer
         /// <summary>
         /// 绘制线框三角形
         /// </summary>
-        /// <param name="vertex0"></param>
-        /// <param name="vertex1"></param>
-        /// <param name="vertex2"></param>
-        /// <param name="shader"></param>
-        private void WireFrameTriangle(ComputeBuffer indexBuffer, LcLShader shader)
+        /// <param name="indexBuffer"></param>
+        /// <param name="shader"></param>/ 
+        /// </summary>
+        private void WireFrameTriangle(ComputeBuffer indexBuffer)
         {
             var threadGroupX = Mathf.CeilToInt(indexBuffer.count / 128f);
             m_ComputeShader.SetBuffer(m_WireFrameKernelIndex, m_VertexOutputProp, m_VertexOutputBuffer);
             m_ComputeShader.SetBuffer(m_WireFrameKernelIndex, m_TriangleProp, indexBuffer);
-            m_ComputeShader.SetVector(m_ViewportSizeProp, new Vector4(m_ViewportSize.x, m_ViewportSize.y, 0, 0));
-            m_ComputeShader.SetVector("_BaseColor", shader.baseColor);
-            // var debugBuffer = GetDebugDataBuffer(3);
-            // m_ComputeShader.SetBuffer(m_WireFrameKernelIndex, "DebugDataBuffer", debugBuffer);
-            m_ComputeShader.SetInt("_CullMode", (int)shader.CullMode);
             m_ComputeShader.Dispatch(m_WireFrameKernelIndex, threadGroupX, 1, 1);
-            // debugBuffer.GetData(m_DebugData);
-            // foreach (var item in m_DebugData)
-            // {
-            //     Debug.Log(item.data0);
-            // }
         }
 
-        private void RasterizeTriangle(ComputeBuffer indexBuffer, LcLShader shader)
+        /// <summary>
+        /// 光栅化 
+        /// </summary>
+        /// <param name="indexBuffer"></param>
+        /// <param name="shader"></param>
+        private void RasterizeTriangle(ComputeBuffer indexBuffer)
         {
             var threadGroupX = Mathf.CeilToInt(indexBuffer.count / 128f);
-            m_ComputeShader.SetBuffer(m_RasterizeTriangleKernelIndex, m_VertexOutputProp, m_VertexOutputBuffer);
-            m_ComputeShader.SetBuffer(m_RasterizeTriangleKernelIndex, m_TriangleProp, indexBuffer);
-            m_ComputeShader.SetVector(m_ViewportSizeProp, new Vector4(m_ViewportSize.x, m_ViewportSize.y, 0, 0));
-            m_ComputeShader.SetVector("_BaseColor", shader.baseColor);
-            m_ComputeShader.SetInt("_CullMode", (int)shader.CullMode);
-            m_ComputeShader.SetInt("_ZWrite", (int)shader.ZWrite);
-            m_ComputeShader.SetInt("_ZTest", (int)shader.ZTest);
-            m_ComputeShader.SetInt("_BlendMode", (int)shader.BlendMode);
-
-            m_ComputeShader.SetInt(m_SampleCountProp, SampleCount);
-            m_ComputeShader.SetInt(m_ScreenZoomProp, m_ScreenZoom);
-
-            m_ComputeShader.Dispatch(m_RasterizeTriangleKernelIndex, threadGroupX, 1, 1);
+            if (IsMSAA)
+            {
+                m_ComputeShader.SetInt(m_SampleCountProp, SampleCount);
+                m_ComputeShader.SetInt(m_ScreenZoomProp, m_ScreenZoom);
+                m_ComputeShader.SetBuffer(m_RasterizeTriangleMSAAKernelIndex, m_VertexOutputProp, m_VertexOutputBuffer);
+                m_ComputeShader.SetBuffer(m_RasterizeTriangleMSAAKernelIndex, m_TriangleProp, indexBuffer);
+                m_ComputeShader.Dispatch(m_RasterizeTriangleMSAAKernelIndex, threadGroupX, 1, 1);
+            }
+            else
+            {
+                m_ComputeShader.SetBuffer(m_RasterizeTriangleKernelIndex, m_VertexOutputProp, m_VertexOutputBuffer);
+                m_ComputeShader.SetBuffer(m_RasterizeTriangleKernelIndex, m_TriangleProp, indexBuffer);
+                m_ComputeShader.Dispatch(m_RasterizeTriangleKernelIndex, threadGroupX, 1, 1);
+            }
+        }
+        public void Resolve()
+        {
+            if (IsMSAA)
+            {
+                m_CommonShader.SetInt(m_SampleCountProp, SampleCount);
+                m_CommonShader.SetInt(m_ScreenZoomProp, m_ScreenZoom);
+                m_CommonShader.Dispatch(m_ResolveKernelIndex, textureThreadGroup.x, textureThreadGroup.y, 1);
+            }
         }
 
         public void Clear(CameraClearFlags clearFlags, Color? clearColor = null, float depth = float.PositiveInfinity)
@@ -231,8 +263,17 @@ namespace LcLSoftRenderer
             m_ClearFlags = clearFlags;
 
             var color = clearColor == null ? Color.clear : clearColor.Value;
-            m_ComputeShader.SetVector(m_ClearColorProp, color);
-            m_ComputeShader.Dispatch(m_ClearKernelIndex, textureThreadGroup.x, textureThreadGroup.y, 1);
+            m_CommonShader.SetVector(m_ClearColorProp, color);
+            if (IsMSAA)
+            {
+                m_CommonShader.SetInt(m_SampleCountProp, SampleCount);
+                m_CommonShader.SetInt(m_ScreenZoomProp, m_ScreenZoom);
+                m_CommonShader.Dispatch(m_ClearMSAAKernelIndex, textureThreadGroup.x, textureThreadGroup.y, 1);
+            }
+            else
+            {
+                m_CommonShader.Dispatch(m_ClearKernelIndex, textureThreadGroup.x, textureThreadGroup.y, 1);
+            }
 
         }
 
@@ -248,7 +289,6 @@ namespace LcLSoftRenderer
 
         public void Dispose()
         {
-            // m_ColorComputeHandler.Dispose();
         }
 
         #region Debugger
@@ -272,11 +312,6 @@ namespace LcLSoftRenderer
             return m_DebugIndex != -1;
         }
 
-
         #endregion
-
-
-
-
     }
 }

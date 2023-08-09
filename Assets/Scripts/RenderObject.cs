@@ -13,6 +13,9 @@ namespace LcLSoftRenderer
 
         [SerializeReference]
         public LcLShader shader = new UnlitShader();
+
+        public ComputeShader computeShader;
+
         public RenderQueue renderQueue => shader.RenderQueue;
         public bool isTransparent => shader.RenderQueue >= RenderQueue.AlphaTest;
         public bool isSkyBox => shader.RenderQueue == RenderQueue.Background;
@@ -118,7 +121,7 @@ namespace LcLSoftRenderer
         {
             this.shader = shader;
         }
-     
+
         #region Debug
         public bool debug = false;
         public bool showPositionOS = true;

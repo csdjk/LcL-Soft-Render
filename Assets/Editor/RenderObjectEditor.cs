@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using System.Linq;
+using System.IO;
 
 namespace LcLSoftRenderer
 {
@@ -11,6 +12,7 @@ namespace LcLSoftRenderer
     {
         bool showShaderBaseProp = true;
         SerializedProperty shaderProp;
+        SerializedProperty computeShaderProp;
         SerializedProperty debugProp;
         string[] shaderNames;
         IEnumerable<System.Type> shaderTypes;
@@ -20,7 +22,7 @@ namespace LcLSoftRenderer
         {
             shaderProp = serializedObject.FindProperty("shader");
             debugProp = serializedObject.FindProperty("debug");
-
+            computeShaderProp = serializedObject.FindProperty("computeShader");
             InitShaderList();
         }
 
@@ -31,6 +33,19 @@ namespace LcLSoftRenderer
                .SelectMany(a => a.GetTypes().Where(t => t.IsSubclassOf(typeof(LcLShader)) && !t.IsAbstract));
             // 获取所有基于ShaderBase的子类的名字
             shaderNames = shaderTypes.Select(t => t.Name).ToArray();
+        }
+
+        public static T GetAssetByName<T>(string name) where T : UnityEngine.Object
+        {
+            var guids = AssetDatabase.FindAssets($"t:{typeof(T).Name}");
+            foreach (var guid in guids)
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                if (Path.GetFileNameWithoutExtension(path) == name)
+                    return AssetDatabase.LoadAssetAtPath<T>(path);
+
+            }
+            return null;
         }
 
         int shaderIndex = 0;
@@ -56,6 +71,18 @@ namespace LcLSoftRenderer
                 serializedObject.ApplyModifiedProperties();
 
             }
+
+            if (SoftRenderer.instance.rasterizerType == RasterizerType.GPUDriven)
+            {
+                if (computeShaderProp.objectReferenceValue == null)
+                    computeShaderProp.objectReferenceValue = GetAssetByName<ComputeShader>(renderObject.shader.GetType().Name);
+                EditorGUILayout.PropertyField(computeShaderProp, new GUIContent("GPU Shader"), true);
+                if (renderObject.computeShader == null)
+                {
+                    EditorGUILayout.HelpBox("当前光栅化类型是GPUDriven，需要指定 Compute Shader", MessageType.Warning);
+                }
+            }
+
 
             // 绘制一个折叠区域
             showShaderBaseProp = EditorGUILayout.Foldout(showShaderBaseProp, "Shader Settings");
@@ -103,7 +130,6 @@ namespace LcLSoftRenderer
                     GUILayout.EndHorizontal();
                 }
                 EditorGUILayout.EndVertical();
-
             }
 
 
@@ -111,13 +137,6 @@ namespace LcLSoftRenderer
 
 
             debugProp.boolValue = EditorGUILayout.Toggle("Debug", debugProp.boolValue);
-            // debugProp.boolValue = EditorGUILayout.Foldout(debugProp.boolValue, "Debug");
-            // if (debugProp.boolValue)
-            // {
-
-            // }
-
-
             serializedObject.ApplyModifiedProperties();
         }
     }

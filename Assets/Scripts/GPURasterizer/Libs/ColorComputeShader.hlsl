@@ -1,66 +1,6 @@
 #include "Input.hlsl"
 #include "Common.hlsl"
 
-uint _CullMode;
-uint _ZTest;
-uint _ZWrite;
-uint _BlendMode;
-uint _SampleCount;
-uint _ScreenZoom;
-// ================================ Debug ================================
-struct DebugData
-{
-    float4 data0;
-};
-RWStructuredBuffer<DebugData> DebugDataBuffer;
-// ================================ Debug ================================
-
-RWTexture2D<float4> ColorTexture;
-RWTexture2D<float> DepthTexture;
-
-StructuredBuffer<Vertex> VertexBuffer;
-RWStructuredBuffer<VertexOutput> VertexOutputBuffer;
-
-StructuredBuffer<uint3> TriangleBuffer;
-
-
-[numthreads(8, 8, 1)]
-void Clear(uint3 id : SV_DispatchThreadID)
-{
-    ColorTexture[id.xy] = ClearColor;
-    DepthTexture[id.xy] = 1;
-}
-
-
-[numthreads(128, 1, 1)]
-void VertexTransform(uint3 id : SV_DispatchThreadID)
-{
-    VertexOutputBuffer[id.x] = vertex(VertexBuffer[id.x]);
-}
-//DepthTexture是一个_SampleCount倍数的renderTexture,例如原来的RT是1024*1024,那么DepthTexture就是1024*1024*_SampleCount
-float GetDepth(int2 screenPos, int sampleIndex)
-{
-    int x = sampleIndex % _ScreenZoom;
-    int y = sampleIndex / _ScreenZoom;
-    return DepthTexture[screenPos];
-}
-
-float GetDepth(int2 screenPos)
-{
-    return DepthTexture[screenPos];
-}
-void SetDepth(int2 screenPos, float depth)
-{
-    DepthTexture[screenPos] = depth;
-}
-float4 GetColor(int2 screenPos)
-{
-    return ColorTexture[screenPos];
-}
-void SetColor(int2 screenPos, float4 color)
-{
-    ColorTexture[screenPos] = color;
-}
 
 // 插值顶点属性
 VertexOutput InterpolateVertexOutputs(VertexOutput start, VertexOutput end, float t)
@@ -198,7 +138,7 @@ void DrawLine(float3 v0, float3 v1, float4 color)
     }
 }
 
-void WireFrameTriangleDraw(VertexOutput vertex0, VertexOutput vertex1, VertexOutput vertex2)
+void WireFrameTriangle(VertexOutput vertex0, VertexOutput vertex1, VertexOutput vertex2)
 {
     float3 ndcPos0;
     float3 ndcPos1;
@@ -229,12 +169,12 @@ void WireFrameTriangle(uint3 id : SV_DispatchThreadID)
     }
     for (int j = 1; j < numClippedVertices - 1; j++)
     {
-        WireFrameTriangleDraw(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1]);
+        WireFrameTriangle(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1]);
     }
 }
 
 
-void RasterizeTriangleDraw(VertexOutput vertex0, VertexOutput vertex1, VertexOutput vertex2)
+void RasterizeTriangle(VertexOutput vertex0, VertexOutput vertex1, VertexOutput vertex2)
 {
     float3 ndcPos0;
     float3 ndcPos1;
@@ -277,17 +217,14 @@ void RasterizeTriangleDraw(VertexOutput vertex0, VertexOutput vertex1, VertexOut
                     barycentric = barycentric / float3(position0.w, position1.w, position2.w) * z;
                     // 插值顶点属性
                     VertexOutput lerpVertex = InterpolateVertexOutputs(vertex0, vertex1, vertex2, barycentric);
-
-                    // todo:
-                    // bool isDiscard = shader.Fragment(lerpVertex, out float4 color);
+                    // InitClip();
                     bool isDiscard = false;
-                    float4 color = fragment();
+                    float4 color = fragment(lerpVertex,isDiscard);
                     
                     if (!isDiscard)
                     {
-                        color = BlendColors(color, ColorTexture[screenPos], _BlendMode);
-                        // m_FrameBuffer.SetColor(x, y, color);
-                        ColorTexture[screenPos] = color;
+                        color = BlendColors(color, GetColor(screenPos), _BlendMode);
+                        SetColor(screenPos, color);
                         if (_ZWrite == ZWrite_On)
                         {
                             SetDepth(screenPos, depth);
@@ -328,6 +265,7 @@ void RasterizeTriangleMSAA(VertexOutput vertex0, VertexOutput vertex1, VertexOut
             // 对每个采样点进行采样
             for (int i = 0; i < sampleCount; i++)
             {
+                int2 screenPos = int2(x, y);
                 // 计算采样点的位置
                 float2 samplePos = float2(x, y) + GetSampleOffset(i, sampleCount);
                 // 计算像素的重心坐标
@@ -338,27 +276,29 @@ void RasterizeTriangleMSAA(VertexOutput vertex0, VertexOutput vertex1, VertexOut
                     // 透视矫正
                     float z = 1 / (barycentric.x / position0.w + barycentric.y / position1.w + barycentric.z / position2.w);
                     float depth = barycentric.x * position0.z + barycentric.y * position1.z + barycentric.z * position2.z;
-                    var depthBuffer = GetDepth(x, y, i);
+                    float depthBuffer = GetDepth(screenPos, i);
                     // 深度测试
-                    if (DepthTest(depth, depthBuffer, shader.ZTest))
+                    if (DepthTest(depth, depthBuffer, _ZTest))
                     {
                         barycentric = barycentric / float3(position0.w, position1.w, position2.w) * z;
                         // 插值顶点属性
-                        var lerpVertex = InterpolateVertexOutputs(vertex0, vertex1, vertex2, barycentric);
+                        VertexOutput lerpVertex = InterpolateVertexOutputs(vertex0, vertex1, vertex2, barycentric);
                         // 每个像素只进行一次片段着色
                         if (!isShaded)
                         {
-                            isDiscard = shader.Fragment(lerpVertex, out float4 fragmentColor);
-                            var blendColor = Utility.BlendColors(fragmentColor, m_FrameBuffer.GetColor(x, y, i), shader.BlendMode);
+                            // InitClip();
+                            isDiscard = false;
+                            float4 fragmentColor = fragment(lerpVertex, isDiscard);
+                            float4 blendColor = BlendColors(fragmentColor, GetColor(screenPos, i), _BlendMode);
 
                             isShaded = true;
                             color = blendColor;
                         }
                         if (!isDiscard)
                         {
-                            m_FrameBuffer.SetColor(x, y, color, i, true);
-                            if (shader.ZWrite == ZWrite.On)
-                                m_FrameBuffer.SetDepth(x, y, depth, i, true);
+                            SetColor(screenPos, color, i);
+                            if (_ZWrite == ZWrite_On)
+                                SetDepth(screenPos, depth, i);
                         }
                     }
                 }
@@ -367,6 +307,32 @@ void RasterizeTriangleMSAA(VertexOutput vertex0, VertexOutput vertex1, VertexOut
     }
 }
 
+// ================================ Clear ================================
+[numthreads(8, 8, 1)]
+void Clear(uint3 id : SV_DispatchThreadID)
+{
+    SetColor(id.xy, ClearColor);
+    SetDepth(id.xy, 1);
+}
+
+[numthreads(8, 8, 1)]
+void ClearMSAA(uint3 id : SV_DispatchThreadID)
+{
+    for (int i = 0; i < _SampleCount; i++)
+    {
+        SetColor(id.xy, ClearColor, i);
+        SetDepth(id.xy, 1, i);
+    }
+}
+
+// ================================ 顶点着色器 ================================
+[numthreads(128, 1, 1)]
+void VertexTransform(uint3 id : SV_DispatchThreadID)
+{
+    VertexOutputBuffer[id.x] = vertex(VertexBuffer[id.x]);
+}
+
+// ================================ 光栅化 ================================
 [numthreads(128, 1, 1)]
 void RasterizeTriangle(uint3 id : SV_DispatchThreadID)
 {
@@ -384,7 +350,43 @@ void RasterizeTriangle(uint3 id : SV_DispatchThreadID)
     }
     for (int j = 1; j < numClippedVertices - 1; j++)
     {
-        RasterizeTriangleDraw(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1]);
+        RasterizeTriangle(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1]);
     }
+}
+
+
+[numthreads(128, 1, 1)]
+void RasterizeTriangleMSAA(uint3 id : SV_DispatchThreadID)
+{
+    int3 tri = TriangleBuffer[id.x];
+    VertexOutput vertex0 = VertexOutputBuffer[tri.x];
+    VertexOutput vertex1 = VertexOutputBuffer[tri.y];
+    VertexOutput vertex2 = VertexOutputBuffer[tri.z];
+
+    // 裁剪三角形
+    VertexOutput clippedVertices[MAX_CLIP_VERTEX_COUNT];
+    int numClippedVertices;
+    if (!ClipTriangle(vertex0, vertex1, vertex2, clippedVertices, numClippedVertices))
+    {
+        return;
+    }
+    for (int j = 1; j < numClippedVertices - 1; j++)
+    {
+        RasterizeTriangleMSAA(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1], _SampleCount);
+    }
+}
+
+// ================================ Resolve MSAA ================================
+[numthreads(8, 8, 1)]
+void Resolve(uint3 id : SV_DispatchThreadID)
+{
+    int2 screenPos = int2(id.xy);
+    float4 color = 0;
+    for (int i = 0; i < _SampleCount; i++)
+    {
+        color += GetColor(screenPos, i);
+    }
+    color /= _SampleCount;
+    ColorTexture[screenPos] = color;
 }
 

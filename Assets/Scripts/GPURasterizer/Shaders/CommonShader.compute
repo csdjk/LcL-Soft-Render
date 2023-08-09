@@ -1,0 +1,37 @@
+#pragma kernel Clear
+#pragma kernel ClearMSAA
+#pragma kernel Resolve
+
+#include "../Libs/Input.hlsl"
+#include "../Libs/Common.hlsl"
+
+[numthreads(8, 8, 1)]
+void Clear(uint3 id : SV_DispatchThreadID)
+{
+    SetColor(id.xy, ClearColor);
+    SetDepth(id.xy, 1);
+}
+
+[numthreads(8, 8, 1)]
+void ClearMSAA(uint3 id : SV_DispatchThreadID)
+{
+    for (int i = 0; i < _SampleCount; i++)
+    {
+        SetColor(id.xy, ClearColor, i);
+        SetDepth(id.xy, 1, i);
+    }
+}
+
+
+[numthreads(8, 8, 1)]
+void Resolve(uint3 id : SV_DispatchThreadID)
+{
+    int2 screenPos = int2(id.xy);
+    float4 color = 0;
+    for (int i = 0; i < _SampleCount; i++)
+    {
+        color += GetColor(screenPos, i);
+    }
+    color /= _SampleCount;
+    ColorTexture[screenPos] = color;
+}
