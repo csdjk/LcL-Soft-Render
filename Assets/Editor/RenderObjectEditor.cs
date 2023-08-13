@@ -68,11 +68,15 @@ namespace LcLSoftRenderer
                     shaderDict.Add(shaderName, shader);
                 }
                 renderObject.SetShader(shader);
+                renderObject.shader = shader;
+                // shaderProp.objectReferenceValue = shader;
+                computeShaderProp.objectReferenceValue = GetAssetByName<ComputeShader>(shaderName);
                 serializedObject.ApplyModifiedProperties();
-
+                computeShaderProp.serializedObject.ApplyModifiedProperties();
             }
+            serializedObject.Update();
 
-            if (SoftRenderer.instance.rasterizerType == RasterizerType.GPUDriven)
+            if (SoftRenderer.instance && SoftRenderer.instance.rasterizerType == RasterizerType.GPUDriven)
             {
                 if (computeShaderProp.objectReferenceValue == null)
                     computeShaderProp.objectReferenceValue = GetAssetByName<ComputeShader>(renderObject.shader.GetType().Name);

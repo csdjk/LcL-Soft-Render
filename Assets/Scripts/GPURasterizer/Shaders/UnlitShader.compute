@@ -32,7 +32,7 @@ float4 FragmentShader(VertexOutput input, out bool isDiscard)
 {
     isDiscard = false;
 
-    return half4(input.uv.xyx, 1);
+    return half4(input.uv.xy,0, 1);
     return _BaseColor;
 }
 

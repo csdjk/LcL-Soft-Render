@@ -26,7 +26,7 @@ RenderSettings:
   m_AmbientIntensity: 1
   m_AmbientMode: 0
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 2100000, guid: 9c0f5b73a58f6f64787f50710f658b37, type: 2}
+  m_SkyboxMaterial: {fileID: 2100000, guid: 4616234b4f3ff4adf8f2fd69ffc7e1cd, type: 2}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 705507994}
-  m_IndirectSpecularColor: {r: 0.13006759, g: 0.17246583, b: 0.219423, a: 1}
+  m_IndirectSpecularColor: {r: 0.20646006, g: 0.27676678, b: 0.4487436, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -155,7 +155,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   shader:
-    rid: 5003120400047538181
+    rid: 2521819275936399417
+  computeShader: {fileID: 7200000, guid: 93aca3b16d8457d45938296b44bae7d1, type: 3}
   debug: 1
   showPositionOS: 0
   showPositionWS: 0
@@ -163,19 +164,16 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 5003120400047538181
-      type: {class: BlinnPhongShader, ns: LcLSoftRenderer, asm: Assembly-CSharp}
+    - rid: 2521819275936399417
+      type: {class: UnlitShader, ns: LcLSoftRenderer, asm: Assembly-CSharp}
       data:
         m_RenderQueue: 2000
         m_ZWrite: 1
         m_ZTest: 4
         m_CullMode: 2
         m_BlendMode: 0
-        baseColor: {r: 0.8490566, g: 0.06808474, b: 0.06808474, a: 1}
+        baseColor: {r: 1, g: 1, b: 1, a: 1}
         mainTexture: {fileID: 0}
-        intensity: 1
-        specularColor: {r: 1, g: 1, b: 1, a: 1}
-        power: 1
 --- !u!23 &564365957
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -234,7 +232,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 564365954}
   m_LocalRotation: {x: 0.7071069, y: -0, z: 3.101377e-10, w: 0.70710677}
-  m_LocalPosition: {x: 0.27, y: -1.5, z: 5.24}
+  m_LocalPosition: {x: 0.27, y: -1.5, z: 6.19}
   m_LocalScale: {x: 10.571246, y: 8.853281, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -324,7 +322,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   shader:
-    rid: 5003120400047538176
+    rid: 2521819275936399365
+  computeShader: {fileID: 7200000, guid: 93aca3b16d8457d45938296b44bae7d1, type: 3}
   debug: 0
   showPositionOS: 1
   showPositionWS: 1
@@ -332,16 +331,19 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 5003120400047538176
-      type: {class: AlphaBlendShader, ns: LcLSoftRenderer, asm: Assembly-CSharp}
+    - rid: 2521819275936399365
+      type: {class: BlinnPhongShader, ns: LcLSoftRenderer, asm: Assembly-CSharp}
       data:
-        m_RenderQueue: 3000
+        m_RenderQueue: 2000
         m_ZWrite: 1
         m_ZTest: 4
         m_CullMode: 2
-        m_BlendMode: 1
+        m_BlendMode: 0
         baseColor: {r: 1, g: 1, b: 1, a: 1}
-        mainTexture: {fileID: 0}
+        mainTexture: {fileID: 2800000, guid: 21bd246ae19bed447b47be52c3c9bacb, type: 3}
+        intensity: 1
+        specularColor: {r: 1, g: 1, b: 1, a: 1}
+        power: 100
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0
@@ -529,6 +531,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   shader:
     rid: 5003120491997429761
+  computeShader: {fileID: 7200000, guid: 93aca3b16d8457d45938296b44bae7d1, type: 3}
   debug: 1
   showPositionOS: 1
   showPositionWS: 1
@@ -650,7 +653,7 @@ MonoBehaviour:
   primitiveType: 0
   msaaMode: 1
   frameInterval: 0.1
-  colorComputeShader: {fileID: 7200000, guid: 93aca3b16d8457d45938296b44bae7d1, type: 3}
+  colorComputeShader: {fileID: 7200000, guid: 66f9fc02bdbad344ea43509242da037d, type: 3}
 --- !u!114 &963194230
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -697,6 +700,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   shader:
     rid: 5003120491997429760
+  computeShader: {fileID: 7200000, guid: 93aca3b16d8457d45938296b44bae7d1, type: 3}
   debug: 0
   showPositionOS: 1
   showPositionWS: 1
@@ -810,7 +814,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1834890338
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -825,6 +829,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   shader:
     rid: 5003120400047538180
+  computeShader: {fileID: 0}
   debug: 0
   showPositionOS: 1
   showPositionWS: 1
@@ -843,12 +848,12 @@ MonoBehaviour:
         baseColor: {r: 1, g: 1, b: 1, a: 1}
         mainTexture: {fileID: 0}
         skybox:
-          front: {fileID: 2800000, guid: 38ca21dd914732940b7bb778b65d2dab, type: 3}
-          back: {fileID: 2800000, guid: d8becb21abb785d43ac1f0ad9eb730a3, type: 3}
-          left: {fileID: 2800000, guid: 8d3a53d490312f748adb69203535ea28, type: 3}
-          right: {fileID: 2800000, guid: 36ba7007a7f56734e8a50ba61d36bbfb, type: 3}
-          up: {fileID: 2800000, guid: 212b4944d919c3f499dc218928256377, type: 3}
-          down: {fileID: 2800000, guid: 6f486610c0b4d28438741e25199b0995, type: 3}
+          front: {fileID: 2800000, guid: 725ecc3f34642474aaaddb1169cc9d62, type: 3}
+          back: {fileID: 2800000, guid: 2ea69184966ec479abac6f2dbbeda856, type: 3}
+          left: {fileID: 2800000, guid: c2098fe367829433098af0c13aaf03f0, type: 3}
+          right: {fileID: 2800000, guid: 271df8b431f1e4aadb05a4dd9aeaaea6, type: 3}
+          up: {fileID: 2800000, guid: e1047f84ae6ce4fa290eda0e2a71760a, type: 3}
+          down: {fileID: 2800000, guid: b12f78de5412a4831be089cba4e7eac2, type: 3}
 --- !u!23 &1834890340
 MeshRenderer:
   m_ObjectHideFlags: 0

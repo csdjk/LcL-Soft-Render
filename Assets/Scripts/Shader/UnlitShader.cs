@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Mathematics;
+using static Unity.Mathematics.math;
 
 namespace LcLSoftRenderer
 {
@@ -45,6 +46,7 @@ namespace LcLSoftRenderer
 
             var tex = Utility.SampleTexture2D(mainTexture, uv);
             colorOutput = baseColor.ToFloat4() * tex.xyzw;
+            colorOutput = float4(uv, 0, 1);
             return false;
         }
     }

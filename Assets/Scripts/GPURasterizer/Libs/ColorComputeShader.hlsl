@@ -2,7 +2,7 @@
 #include "Common.hlsl"
 
 
-// 插值顶点属性
+// 插值顶点属性(裁剪三角形的时候用)
 VertexOutput InterpolateVertexOutputs(VertexOutput start, VertexOutput end, float t)
 {
     VertexOutput result = (VertexOutput)0;
@@ -23,9 +23,9 @@ VertexOutput InterpolateVertexOutputs(VertexOutput v0, VertexOutput v1, VertexOu
     // result.positionCS = barycentric.x * v0.positionCS + barycentric.y * v1.positionCS + barycentric.z * v2.positionCS;
     result.positionOS = barycentric.x * v0.positionOS + barycentric.y * v1.positionOS + barycentric.z * v2.positionOS;
     result.normalWS = barycentric.x * v0.normalWS + barycentric.y * v1.normalWS + barycentric.z * v2.normalWS;
+    result.tangent = barycentric.x * v0.tangent + barycentric.y * v1.tangent + barycentric.z * v2.tangent;
     result.color = barycentric.x * v0.color + barycentric.y * v1.color + barycentric.z * v2.color;
     result.uv = barycentric.x * v0.uv + barycentric.y * v1.uv + barycentric.z * v2.uv;
-    result.tangent = barycentric.x * v0.tangent + barycentric.y * v1.tangent + barycentric.z * v2.tangent;
     result.viewDir = barycentric.x * v0.viewDir + barycentric.y * v1.viewDir + barycentric.z * v2.viewDir;
     return result;
 }
@@ -219,7 +219,7 @@ void RasterizeTriangle(VertexOutput vertex0, VertexOutput vertex1, VertexOutput 
                     VertexOutput lerpVertex = InterpolateVertexOutputs(vertex0, vertex1, vertex2, barycentric);
                     // InitClip();
                     bool isDiscard = false;
-                    float4 color = fragment(lerpVertex,isDiscard);
+                    float4 color = fragment(lerpVertex, isDiscard);
                     
                     if (!isDiscard)
                     {
