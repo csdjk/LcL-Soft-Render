@@ -39,12 +39,11 @@ RWStructuredBuffer<DebugData> DebugDataBuffer;
 // ================================ Debug ================================
 
 RWTexture2D<float4> ColorTexture;
-RWTexture2D<float> DepthTexture;
 RWTexture2D<float4> ColorTextureMSAA;
+RWTexture2D<float> DepthTexture;
 
 StructuredBuffer<Vertex> VertexBuffer;
 RWStructuredBuffer<VertexOutput> VertexOutputBuffer;
-
 StructuredBuffer<uint3> TriangleBuffer;
 
 
@@ -60,6 +59,13 @@ int2 GetOffset(int2 screenPos, int sampleIndex)
     int y = sampleIndex / _ScreenZoom;
     return screenPos * _ScreenZoom + int2(x, y);
 }
+
+// float GetDepth(int2 screenPos,)
+// {
+//      uint PrevDepth;
+//             uint DepthInt = asuint(zp);
+//     return DepthTexture[screenPos];
+// }
 
 float GetDepth(int2 screenPos)
 {

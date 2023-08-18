@@ -210,7 +210,17 @@ void RasterizeTriangle(VertexOutput vertex0, VertexOutput vertex1, VertexOutput 
                 float depth = barycentric.x * position0.z + barycentric.y * position1.z + barycentric.z * position2.z;
 
                 float depthBuffer = GetDepth(screenPos);
+                // InterlockedMax(DepthTexture[screenPos], depth);
+                // InterlockedMin(DepthTexture[screenPos], depth);
+
+                // uint PrevDepth;
+                // uint DepthInt = asuint(depth);
+                // InterlockedMax(DepthTexture[screenPos], DepthInt, PrevDepth);
+                // InterlockedMin(DepthTexture[screenPos], DepthInt, PrevDepth);
+
                 // 深度测试
+                // if (DepthInt <= PrevDepth)
+                // if (depth <= DepthTexture[screenPos])
                 if (DepthTest(depth, depthBuffer, _ZTest))
                 {
                     // 进行透视矫正
@@ -340,6 +350,8 @@ void RasterizeTriangle(uint3 id : SV_DispatchThreadID)
     VertexOutput vertex0 = VertexOutputBuffer[tri.x];
     VertexOutput vertex1 = VertexOutputBuffer[tri.y];
     VertexOutput vertex2 = VertexOutputBuffer[tri.z];
+
+    // RasterizeTriangle(vertex0, vertex1, vertex2);
 
     // 裁剪三角形
     VertexOutput clippedVertices[MAX_CLIP_VERTEX_COUNT];

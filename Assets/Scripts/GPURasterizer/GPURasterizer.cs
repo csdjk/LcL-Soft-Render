@@ -84,7 +84,7 @@ namespace LcLSoftRenderer
             m_CommonShader.SetTexture(m_ClearMSAAKernelIndex, m_ColorProp, m_ColorTexture);
 
             // Depth Buffer
-            m_DepthTexture = new RenderTexture(msaaRtSize.x, msaaRtSize.y, 1, RenderTextureFormat.R16);
+            m_DepthTexture = new RenderTexture(msaaRtSize.x, msaaRtSize.y, 1, RenderTextureFormat.RFloat);
             m_DepthTexture.enableRandomWrite = true;
             m_DepthTexture.Create();
             m_CommonShader.SetTexture(m_ClearKernelIndex, m_DepthProp, m_DepthTexture);

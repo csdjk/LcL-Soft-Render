@@ -68,11 +68,7 @@ namespace LcLSoftRenderer
                     shaderDict.Add(shaderName, shader);
                 }
                 renderObject.SetShader(shader);
-                renderObject.shader = shader;
-                // shaderProp.objectReferenceValue = shader;
-                computeShaderProp.objectReferenceValue = GetAssetByName<ComputeShader>(shaderName);
-                serializedObject.ApplyModifiedProperties();
-                computeShaderProp.serializedObject.ApplyModifiedProperties();
+                renderObject.computeShader  = GetAssetByName<ComputeShader>(shaderName);
             }
             serializedObject.Update();
 
