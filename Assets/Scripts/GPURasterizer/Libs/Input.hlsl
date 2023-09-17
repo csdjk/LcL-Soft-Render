@@ -40,13 +40,14 @@ RWStructuredBuffer<DebugData> DebugDataBuffer;
 
 RWTexture2D<float4> ColorTexture;
 RWTexture2D<float4> ColorTextureMSAA;
-RWTexture2D<float> DepthTexture;
+// RWTexture2D<float> DepthTexture;
+RWTexture2D<uint> DepthTexture;
 
 StructuredBuffer<Vertex> VertexBuffer;
 RWStructuredBuffer<VertexOutput> VertexOutputBuffer;
 StructuredBuffer<uint3> TriangleBuffer;
 
-
+Texture2D<float4> AlbedoTexture;
 bool IsMSAA()
 {
     return _SampleCount > 1;
@@ -60,12 +61,6 @@ int2 GetOffset(int2 screenPos, int sampleIndex)
     return screenPos * _ScreenZoom + int2(x, y);
 }
 
-// float GetDepth(int2 screenPos,)
-// {
-//      uint PrevDepth;
-//             uint DepthInt = asuint(zp);
-//     return DepthTexture[screenPos];
-// }
 
 float GetDepth(int2 screenPos)
 {
@@ -77,6 +72,10 @@ float GetDepth(int2 screenPos, int sampleIndex)
     return GetDepth(screenPos);
 }
 
+void SetDepth(int2 screenPos, int depth)
+{
+    DepthTexture[screenPos] = depth;
+}
 void SetDepth(int2 screenPos, float depth)
 {
     DepthTexture[screenPos] = depth;
@@ -107,5 +106,8 @@ void SetColor(int2 screenPos, float4 color, int sampleIndex)
 }
 
 
-
+float ReverseZ(float depth)
+{
+    return 1 - depth;
+}
 #endif

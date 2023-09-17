@@ -146,28 +146,30 @@ namespace LcLSoftRenderer
                 var vertex1 = shader.Vertex(v1);
                 var vertex2 = shader.Vertex(v2);
 
-                // 裁剪三角形
-                if (!ClipTriangle(vertex0, vertex1, vertex2, out var clippedVertices))
-                {
-                    continue;
-                }
+                WireFrameTriangle(vertex0, vertex1, vertex2, shader);
 
-                // 绘制裁剪后的三角形
-                for (int j = 1; j < clippedVertices.Count - 1; j++)
-                {
-                    switch (m_PrimitiveType)
-                    {
-                        case PrimitiveType.Line:
-                            WireFrameTriangle(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1], shader);
-                            break;
-                        case PrimitiveType.Triangle:
-                            if (IsMSAA)
-                                RasterizeTriangleMSAA(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1], shader, SampleCount);
-                            else
-                                RasterizeTriangle(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1], shader);
-                            break;
-                    }
-                }
+                // // 裁剪三角形
+                // if (!ClipTriangle(vertex0, vertex1, vertex2, out var clippedVertices))
+                // {
+                //     continue;
+                // }
+
+                // // 绘制裁剪后的三角形
+                // for (int j = 1; j < clippedVertices.Count - 1; j++)
+                // {
+                //     switch (m_PrimitiveType)
+                //     {
+                //         case PrimitiveType.Line:
+                //             WireFrameTriangle(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1], shader);
+                //             break;
+                //         case PrimitiveType.Triangle:
+                //             if (IsMSAA)
+                //                 RasterizeTriangleMSAA(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1], shader, SampleCount);
+                //             else
+                //                 RasterizeTriangle(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1], shader);
+                //             break;
+                //     }
+                // }
             }
         }
 
@@ -207,8 +209,8 @@ namespace LcLSoftRenderer
             int x1 = (int)v1.x;
             int y1 = (int)v1.y;
 
-            int dx = Mathf.Abs(x1 - x0);
-            int dy = Mathf.Abs(y1 - y0);
+            int dx = abs(x1 - x0);
+            int dy = abs(y1 - y0);
             int sx = x0 < x1 ? 1 : -1;
             int sy = y0 < y1 ? 1 : -1;
             int err = dx - dy;

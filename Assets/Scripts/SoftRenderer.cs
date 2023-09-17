@@ -6,21 +6,6 @@ using UnityEngine.Profiling;
 using Unity.Mathematics;
 namespace LcLSoftRenderer
 {
-    struct LcLMesh
-    {
-        public int vertexBufferHandle;
-        public int indexBufferHandle;
-        public MeshFilter mesh;
-        // public ModelProperty modelProperty;
-        public LcLMesh(int vertexBufferHandle, int indexBufferHandle, MeshFilter mesh)
-        {
-            this.vertexBufferHandle = vertexBufferHandle;
-            this.indexBufferHandle = indexBufferHandle;
-            this.mesh = mesh;
-            // this.modelProperty = modelProperty;
-        }
-    }
-
     [ExecuteAlways]
     public class SoftRenderer : MonoBehaviour
     {
@@ -69,22 +54,10 @@ namespace LcLSoftRenderer
         {
             m_Camera = GetComponent<Camera>();
             if (rasterizerType == RasterizerType.GPUDriven)
-                m_Rasterizer = new GPURasterizer(m_Camera, colorComputeShader,msaaMode);
+                m_Rasterizer = new GPURasterizer(m_Camera, colorComputeShader, msaaMode);
             else
                 m_Rasterizer = new CPURasterizer(m_Camera, msaaMode);
             CollectRenderObjects();
-            DisableUnityCamera();
-        }
-
-        private void OnDisable()
-        {
-            m_Camera.cullingMask = 1;
-            instance = null;
-        }
-
-        private void DisableUnityCamera()
-        {
-            m_Camera.cullingMask = 0;
         }
 
         // 收集所有的渲染对象
@@ -164,7 +137,11 @@ namespace LcLSoftRenderer
                return a.renderQueue.CompareTo(b.renderQueue);
            });
         }
-
+        private void OnDisable()
+        {
+            m_Camera.cullingMask = 1;
+            instance = null;
+        }
         public void Dispose()
         {
             m_Rasterizer?.Dispose();

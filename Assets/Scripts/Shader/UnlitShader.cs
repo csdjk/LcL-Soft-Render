@@ -46,7 +46,7 @@ namespace LcLSoftRenderer
 
             var tex = Utility.SampleTexture2D(mainTexture, uv);
             colorOutput = baseColor.ToFloat4() * tex.xyzw;
-            colorOutput = float4(uv, 0, 1);
+            // colorOutput = float4(uv, 0, 1);
             return false;
         }
     }

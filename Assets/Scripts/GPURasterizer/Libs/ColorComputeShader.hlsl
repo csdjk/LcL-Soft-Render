@@ -1,7 +1,5 @@
 #include "Input.hlsl"
 #include "Common.hlsl"
-
-
 // 插值顶点属性(裁剪三角形的时候用)
 VertexOutput InterpolateVertexOutputs(VertexOutput start, VertexOutput end, float t)
 {
@@ -209,25 +207,21 @@ void RasterizeTriangle(VertexOutput vertex0, VertexOutput vertex1, VertexOutput 
                 /// ================================ 当前像素的深度插值 ================================
                 float depth = barycentric.x * position0.z + barycentric.y * position1.z + barycentric.z * position2.z;
 
-                float depthBuffer = GetDepth(screenPos);
-                // InterlockedMax(DepthTexture[screenPos], depth);
-                // InterlockedMin(DepthTexture[screenPos], depth);
+                depth = ReverseZ(depth);
+                // float depthBuffer = GetDepth(screenPos);
 
-                // uint PrevDepth;
-                // uint DepthInt = asuint(depth);
-                // InterlockedMax(DepthTexture[screenPos], DepthInt, PrevDepth);
-                // InterlockedMin(DepthTexture[screenPos], DepthInt, PrevDepth);
-
+                uint prevDepth;
+                uint depthInt = asuint(depth);
+                InterlockedMax(DepthTexture[screenPos], depthInt, prevDepth);
                 // 深度测试
-                // if (DepthInt <= PrevDepth)
-                // if (depth <= DepthTexture[screenPos])
-                if (DepthTest(depth, depthBuffer, _ZTest))
+                if (depthInt > prevDepth)
+                // if (DepthTest(depth, depthBuffer, _ZTest))
+
                 {
                     // 进行透视矫正
                     barycentric = barycentric / float3(position0.w, position1.w, position2.w) * z;
                     // 插值顶点属性
                     VertexOutput lerpVertex = InterpolateVertexOutputs(vertex0, vertex1, vertex2, barycentric);
-                    // InitClip();
                     bool isDiscard = false;
                     float4 color = fragment(lerpVertex, isDiscard);
                     
@@ -237,7 +231,9 @@ void RasterizeTriangle(VertexOutput vertex0, VertexOutput vertex1, VertexOutput 
                         SetColor(screenPos, color);
                         if (_ZWrite == ZWrite_On)
                         {
-                            SetDepth(screenPos, depth);
+                            // SetDepth(screenPos, depth);
+                            // InterlockedMax(DepthTexture[screenPos], depthInt);
+
                         }
                     }
                 }
@@ -286,9 +282,15 @@ void RasterizeTriangleMSAA(VertexOutput vertex0, VertexOutput vertex1, VertexOut
                     // 透视矫正
                     float z = 1 / (barycentric.x / position0.w + barycentric.y / position1.w + barycentric.z / position2.w);
                     float depth = barycentric.x * position0.z + barycentric.y * position1.z + barycentric.z * position2.z;
-                    float depthBuffer = GetDepth(screenPos, i);
+
+                    depth = ReverseZ(depth);
+
+                    int2 screenPosDepth = GetOffset(screenPos, i);
+                    uint prevDepth;
+                    uint depthInt = asuint(depth);
+                    InterlockedMax(DepthTexture[screenPosDepth], depthInt, prevDepth);
                     // 深度测试
-                    if (DepthTest(depth, depthBuffer, _ZTest))
+                    if (depthInt > prevDepth)
                     {
                         barycentric = barycentric / float3(position0.w, position1.w, position2.w) * z;
                         // 插值顶点属性
@@ -296,7 +298,6 @@ void RasterizeTriangleMSAA(VertexOutput vertex0, VertexOutput vertex1, VertexOut
                         // 每个像素只进行一次片段着色
                         if (!isShaded)
                         {
-                            // InitClip();
                             isDiscard = false;
                             float4 fragmentColor = fragment(lerpVertex, isDiscard);
                             float4 blendColor = BlendColors(fragmentColor, GetColor(screenPos, i), _BlendMode);
@@ -307,31 +308,11 @@ void RasterizeTriangleMSAA(VertexOutput vertex0, VertexOutput vertex1, VertexOut
                         if (!isDiscard)
                         {
                             SetColor(screenPos, color, i);
-                            if (_ZWrite == ZWrite_On)
-                                SetDepth(screenPos, depth, i);
                         }
                     }
                 }
             }
         }
-    }
-}
-
-// ================================ Clear ================================
-[numthreads(8, 8, 1)]
-void Clear(uint3 id : SV_DispatchThreadID)
-{
-    SetColor(id.xy, ClearColor);
-    SetDepth(id.xy, 1);
-}
-
-[numthreads(8, 8, 1)]
-void ClearMSAA(uint3 id : SV_DispatchThreadID)
-{
-    for (int i = 0; i < _SampleCount; i++)
-    {
-        SetColor(id.xy, ClearColor, i);
-        SetDepth(id.xy, 1, i);
     }
 }
 

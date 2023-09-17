@@ -4,12 +4,13 @@
 
 #include "../Libs/Input.hlsl"
 #include "../Libs/Common.hlsl"
+#pragma enable_d3d11_debug_symbols
 
 [numthreads(8, 8, 1)]
 void Clear(uint3 id : SV_DispatchThreadID)
 {
     SetColor(id.xy, ClearColor);
-    SetDepth(id.xy, 1);
+    SetDepth(id.xy, 0);
 }
 
 [numthreads(8, 8, 1)]

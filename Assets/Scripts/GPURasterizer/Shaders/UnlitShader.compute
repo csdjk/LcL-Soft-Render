@@ -1,5 +1,3 @@
-#pragma kernel Clear
-#pragma kernel ClearMSAA
 #pragma kernel VertexTransform
 #pragma kernel WireFrameTriangle
 #pragma kernel RasterizeTriangle
@@ -8,6 +6,7 @@
 
 #include "../Libs/Input.hlsl"
 #include "../Libs/Common.hlsl"
+#pragma enable_d3d11_debug_symbols
 
 float4 _BaseColor;
 

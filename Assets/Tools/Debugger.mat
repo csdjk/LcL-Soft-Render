@@ -10,7 +10,7 @@ Material:
   m_Name: Debugger
   m_Shader: {fileID: 4800000, guid: e3bf8c03446c8ff4f90ea672cf51e5d7, type: 3}
   m_ValidKeywords:
-  - _SHOWVALUE_UV0
+  - _SHOWVALUE_NORMAL
   m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
@@ -31,7 +31,7 @@ Material:
     - _Gamma: 1
     - _Invert: 0
     - _ScleraSize: 1
-    - _ShowValue: 13
+    - _ShowValue: 10
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []

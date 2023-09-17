@@ -49,7 +49,7 @@ namespace LcLSoftRenderer
             float3 up = camera.transform.up;
             // 创建一个视图变换矩阵
             var viewMatrix = CreateViewMatrix(position, forward, up);
-            // float4x4 viewMatrix = float4x4.TRS(camera.transform.position, camera.transform.rotation, float3.one).inverse;
+            // float4x4 viewMatrix = Matrix4x4.TRS(camera.transform.position, camera.transform.rotation, Vector3.one).inverse;
         
             // 创建一个透视投影矩阵
             float4x4 projectionMatrix = Perspective(camera.nearClipPlane, camera.farClipPlane, camera.fieldOfView, camera.aspect);
@@ -203,7 +203,7 @@ namespace LcLSoftRenderer
 
         // 
         /// <summary>
-        /// 四元数转换为旋转矩阵(https://blog.csdn.net/silangquan/article/details/50984641)
+        /// 四元数转换为旋转矩阵(https://blog.csdn.net/silangquan/article/details/39008903)
         /// </summary>
         /// <param name="rotation"></param>
         /// <returns></returns>

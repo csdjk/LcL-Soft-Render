@@ -1,5 +1,4 @@
-#pragma kernel Clear
-#pragma kernel ClearMSAA
+
 #pragma kernel VertexTransform
 #pragma kernel WireFrameTriangle
 #pragma kernel RasterizeTriangle
@@ -10,6 +9,8 @@
 #include "../Libs/Common.hlsl"
 
 float4 _BaseColor;
+// Texture2D<float4> _MainTexture;
+// SamplerState linearClampSampler;
 
 // ================================ 顶点着色器 ================================
 VertexOutput UnlitVertex(Vertex input)
@@ -32,8 +33,24 @@ float4 FragmentShader(VertexOutput input, out bool isDiscard)
 {
     isDiscard = false;
 
-    return half4(input.normalWS.xyx, 1);
-    return _BaseColor;
+    float2 uv = input.uv;
+    // var tex = tex2D(mainTexture, uv);
+
+    // float3 normal = normalize(input.normalWS).xyz;
+    // float3 viewDir = normalize(input.viewDir);
+
+    // float3 lightDir = Global.light.direction;
+    // float3 lightColor = Global.light.color;
+
+    // float3 diffuse = max(dot(normal, lightDir) * 0.5f + 0.5f, 0) * baseColor.ToFloat3() * tex.xyz;
+    // float3 halfDir = normalize(lightDir + viewDir);
+    // float3 specular = pow(max(0, dot(normal, halfDir)), power) * specularColor.ToFloat3();
+    // float3 finalColor = lightColor * (diffuse + Global.ambientColor.xyz + specular);
+
+    // float4 color = _MainTexture.SampleLevel(linearClampSampler, uv, 0);
+    float4 color = AlbedoTexture[uint2(uv)];
+    // return half4(input.normalWS.xyx, 1);
+    return color;
 }
 
 

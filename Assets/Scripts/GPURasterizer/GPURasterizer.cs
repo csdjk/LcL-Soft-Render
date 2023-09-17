@@ -84,8 +84,10 @@ namespace LcLSoftRenderer
             m_CommonShader.SetTexture(m_ClearMSAAKernelIndex, m_ColorProp, m_ColorTexture);
 
             // Depth Buffer
-            m_DepthTexture = new RenderTexture(msaaRtSize.x, msaaRtSize.y, 1, RenderTextureFormat.RFloat);
+            // m_DepthTexture = new RenderTexture(msaaRtSize.x, msaaRtSize.y, 1, RenderTextureFormat.RFloat, RenderTextureReadWrite.Linear);
+            m_DepthTexture = new RenderTexture(msaaRtSize.x, msaaRtSize.y, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
             m_DepthTexture.enableRandomWrite = true;
+            m_DepthTexture.filterMode = FilterMode.Point;
             m_DepthTexture.Create();
             m_CommonShader.SetTexture(m_ClearKernelIndex, m_DepthProp, m_DepthTexture);
             m_CommonShader.SetTexture(m_ClearMSAAKernelIndex, m_DepthProp, m_DepthTexture);
@@ -115,6 +117,7 @@ namespace LcLSoftRenderer
             return m_VertexOutputBuffer;
         }
 
+         RenderTexture   test ;
 
         public void SetPass(LcLShader shader)
         {
@@ -144,6 +147,20 @@ namespace LcLSoftRenderer
             m_ComputeShader.SetInt("_ZWrite", (int)shader.ZWrite);
             m_ComputeShader.SetInt("_ZTest", (int)shader.ZTest);
             m_ComputeShader.SetInt("_BlendMode", (int)shader.BlendMode);
+
+
+            if (shader.mainTexture)
+            {
+                if(test == null)
+                {
+                    test = new RenderTexture(shader.mainTexture.width, shader.mainTexture.height, 0, RenderTextureFormat.ARGBFloat);
+                    test.enableRandomWrite = true;
+                    test.Create();
+                }
+                Graphics.Blit(shader.mainTexture, test);
+                m_CommonShader.SetTexture(m_RasterizeTriangleKernelIndex, "AlbedoTexture",test);
+                // m_CommonShader.SetTexture(m_RasterizeTriangleMSAAKernelIndex, "_MainTexture", shader.mainTexture);
+            }
         }
 
 
@@ -163,7 +180,7 @@ namespace LcLSoftRenderer
             Resolve();
         }
 
-
+        public LcLShader shader;
         public void DrawElements(RenderObject model)
         {
             if (model == null) return;
@@ -171,7 +188,7 @@ namespace LcLSoftRenderer
             var indexBuffer = model.indexBuffer.computeBuffer;
             m_ComputeShader = model.computeShader;
             SetPass(model.shader);
-
+            shader = model.shader;
             // 顶点变换
             m_ComputeShader.SetMatrix("MATRIX_M", model.matrixM);
             m_ComputeShader.SetMatrix("MATRIX_VP", m_MatrixVP);
@@ -232,6 +249,11 @@ namespace LcLSoftRenderer
         /// <param name="shader"></param>
         private void RasterizeTriangle(ComputeBuffer indexBuffer)
         {
+            if (shader.mainTexture == null)
+            {
+                Debug.LogError("Main texture is null!");
+                return;
+            }
             var threadGroupX = Mathf.CeilToInt(indexBuffer.count / 128f);
             if (IsMSAA)
             {

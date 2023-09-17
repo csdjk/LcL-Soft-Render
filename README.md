@@ -19,13 +19,13 @@
 11. MSAA
 12. Frame Debugger
 
-
 ## 线框模式渲染
 
 ![1690024502903](image/README/1690024502903.png)
 
 ## 三角面渲染
 
-| No MSAA                                                                                                                       | MSAA x4                                                                                                                             |
-| ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| ![No MSAA](https://file+.vscode-resource.vscode-cdn.net/e%3A/LiChangLong/LcL-Soft-Render/image/README/1690020307543.png "No MSAA") | ![1690020350585](https://file+.vscode-resource.vscode-cdn.net/e%3A/LiChangLong/LcL-Soft-Render/image/README/1690020350585.png "MSAA x4") |
+ ![No MSAA](https://file+.vscode-resource.vscode-cdn.net/e%3A/LiChangLong/LcL-Soft-Render/image/README/1690020307543.png "No MSAA")
+---
+
+ ![1690020350585](https://file+.vscode-resource.vscode-cdn.net/e%3A/LiChangLong/LcL-Soft-Render/image/README/1690020350585.png "MSAA x4") |
