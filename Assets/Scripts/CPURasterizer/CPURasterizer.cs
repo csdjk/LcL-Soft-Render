@@ -146,30 +146,28 @@ namespace LcLSoftRenderer
                 var vertex1 = shader.Vertex(v1);
                 var vertex2 = shader.Vertex(v2);
 
-                WireFrameTriangle(vertex0, vertex1, vertex2, shader);
+                // 裁剪三角形
+                if (!ClipTriangle(vertex0, vertex1, vertex2, out var clippedVertices))
+                {
+                    continue;
+                }
 
-                // // 裁剪三角形
-                // if (!ClipTriangle(vertex0, vertex1, vertex2, out var clippedVertices))
-                // {
-                //     continue;
-                // }
-
-                // // 绘制裁剪后的三角形
-                // for (int j = 1; j < clippedVertices.Count - 1; j++)
-                // {
-                //     switch (m_PrimitiveType)
-                //     {
-                //         case PrimitiveType.Line:
-                //             WireFrameTriangle(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1], shader);
-                //             break;
-                //         case PrimitiveType.Triangle:
-                //             if (IsMSAA)
-                //                 RasterizeTriangleMSAA(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1], shader, SampleCount);
-                //             else
-                //                 RasterizeTriangle(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1], shader);
-                //             break;
-                //     }
-                // }
+                // 绘制裁剪后的三角形
+                for (int j = 1; j < clippedVertices.Count - 1; j++)
+                {
+                    switch (m_PrimitiveType)
+                    {
+                        case PrimitiveType.Line:
+                            WireFrameTriangle(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1], shader);
+                            break;
+                        case PrimitiveType.Triangle:
+                            if (IsMSAA)
+                                RasterizeTriangleMSAA(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1], shader, SampleCount);
+                            else
+                                RasterizeTriangle(clippedVertices[0], clippedVertices[j], clippedVertices[j + 1], shader);
+                            break;
+                    }
+                }
             }
         }
 

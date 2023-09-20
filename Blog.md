@@ -8,12 +8,12 @@
 
 在本文中，我将重点介绍 CPU Rasterizer 的实现，至于 GPU Rasterizer 用的算法都是一样的，这里就不赘述了。源码放在我的[github](https://github.com/csdjk/LcL-Soft-Render)上了，有兴趣的可以看看。
 
-由于篇幅原因以下大部分的算法都不会过于详细的解释(不会，抄就完事*^▽^*)，但我会提供相关的参考链接和公式推导链接。
+由于篇幅原因以下大部分的算法都不会过于详细的解释以及推导(不会，抄就完事*^▽^*)，但我会提供相关的参考链接和公式推导链接。
 并且后面提供的代码也不是完整的，只截取关键部分，完整的代码可以去 github 上查看。
 
 ## 准备工作
 
-1. 为了更好的符合图形编程的习惯，这里引入了 Mathematics 库，方便后面的运算中使用 float4、float4x4 等数据类型和“.xyz”等语法。![1693648263522](https://file+.vscode-resource.vscode-cdn.net/e%3A/LiChangLong/LcL-Soft-Render/image/%E7%9F%A5%E4%B9%8E/1693648263522.png)
+1. 为了更好的符合图形编程的习惯，这里引入了 Mathematics 库，方便后面的运算中使用 float4、float4x4 等数据类型和“.xyz”等语法。![1695127817665](image/Blog/1695127817665.png)
 2. 由于需要读取模型和贴图数据，所以需要开启模型和贴图的读写，这里就简单编写了一个资源导入脚本，导入资源的时候会自动开启读写功能。
 
    ```csharp
@@ -366,7 +366,10 @@ public static float4 ClipPositionToScreenPosition(float4 clipPos, Camera camera,
 ### 绘制线框
 
 有了 Vertex Buffer 和 Index Buffer，以及 MVP 矩阵，我们就可以开始绘制了。这里先绘制线框，看看是否能够正确的显示出来。
-绘制算法用的是 Bresenham 算法，原理可以Google一下，网上很多，或者也可以参考[这篇文章](https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm)。
+
+绘制直线的算法用的是 [Bresenham](https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm) 算法。
+
+**Bresenham** 算法是一种用于计算直线的离散化算法，其核心思想是通过计算直线的斜率和像素之间的距离来确定每个像素是否应该被绘制。具体来说，Bresenham 算法通过比较直线的斜率和像素之间的距离来确定每个像素的位置，从而实现直线的离散化。该算法的优点是计算量小，速度快，适用于计算直线和圆等基本图形。
 
 ```csharp
 /// Bresenham's 画线算法
@@ -412,3 +415,269 @@ private void DrawLine(float3 v0, float3 v1, Color color)
 
 效果如下:
 
+![1695124319660](image/Blog/1695124319660.png)
+
+### 三角形裁剪
+
+这里采用的是 [Sutherland-Hodgman](https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm) 算法。
+
+Sutherland-Hodgman 算法的关键思想是：将多边形的顶点按照顺时针或者逆时针的顺序依次输入到算法中，然后通过裁剪窗口的每条边，将多边形裁剪成一个新的多边形，然后将新的多边形作为下一条边的输入，直到所有的边都被裁剪完毕。
+
+![1695127346623](image/Blog/1695127346623.png)
+
+实现如下：
+
+```csharp
+bool ClipTriangle(VertexOutput vertex0, VertexOutput vertex1, VertexOutput vertex2, out List<VertexOutput> vertices)
+        {
+            // 定义三角形的顶点列表和裁剪后的顶点列表
+            vertices = new List<VertexOutput> { vertex0, vertex1, vertex2 };
+            var clippedVertices = new List<VertexOutput>();
+            int numClippedVertices = 3;
+
+            // 对三角形进行六次裁剪，分别对应于六个裁剪平面
+            for (int i = 0; i < planes.Length; i++)
+            {
+                // 裁剪后的顶点列表
+                clippedVertices.Clear();
+
+                // 对顶点列表进行裁剪
+                for (int j = 0; j < numClippedVertices; j++)
+                {
+                    // 获取当前边的起点和终点
+                    var vj = vertices[j];
+                    var vk = vertices[(j + 1) % numClippedVertices];
+
+                    // 判断当前边的起点和终点是否在裁剪平面的内侧
+                    bool vjInside = IsInsidePlane(planes[i], vj.positionCS);
+                    bool vkInside = IsInsidePlane(planes[i], vk.positionCS);
+
+                    // 根据起点和终点的位置关系进行裁剪
+                    if (vjInside && vkInside)
+                    {
+                        // 如果起点和终点都在内侧，则将起点添加到裁剪后的顶点列表中
+                        clippedVertices.Add(vj);
+                    }
+                    else if (vjInside && !vkInside)
+                    {
+                        // 如果起点在内侧，终点在外侧，则计算交点并将起点和交点添加到裁剪后的顶点列表中
+                        float t = dot(planes[i], vj.positionCS) / dot(planes[i], vj.positionCS - vk.positionCS);
+                        clippedVertices.Add(vj);
+                        clippedVertices.Add(InterpolateVertexOutputs(vj, vk, t));
+                    }
+                    else if (!vjInside && vkInside)
+                    {
+                        // 如果起点在外侧，终点在内侧，则计算交点并将交点添加到裁剪后的顶点列表中
+                        float t = dot(planes[i], vj.positionCS) / dot(planes[i], vj.positionCS - vk.positionCS);
+                        clippedVertices.Add(InterpolateVertexOutputs(vj, vk, t));
+                    }
+                }
+
+                // 更新裁剪后的顶点列表和顶点计数器
+                numClippedVertices = clippedVertices.Count;
+                vertices = clippedVertices.ToList();
+            }
+
+            // 如果裁剪后的顶点列表为空，则表示三角形被完全裁剪，返回 false
+            if (numClippedVertices == 0)
+            {
+                return false;
+            }
+            return true;
+        }
+```
+
+效果：
+
+![1695128159778](image/Blog/1695128159778.png)
+
+### 背面剔除
+
+背面剔除就比较简单了, 两条边叉乘的结果 z 大于 0 就表示是背面，否则是正面。需要注意的是，这里的顺序是顺时针，遵循左手坐标系。
+
+```csharp
+private bool IsBackFace(float3 v0, float3 v1, float3 v2)
+{
+    float3 e1 = v1 - v0;
+    float3 e2 = v2 - v0;
+    float3 normal = cross(e1, e2);
+    return normal.z > 0;
+}
+```
+
+### 三角形光栅化
+
+光栅化中我们需要将三角形的顶点坐标转换到屏幕空间，然后计算三角形的包围盒，然后遍历包围盒内的像素，计算像素的重心坐标，根据重心坐标判断是否在三角形内，如果在三角形内，那么再计算当前像素 depth 并做 Depth Test，最后通过了 Depth Test 的再根据重心坐标插值顶点属性，最后 Blend Color 并将 Color 写入到 Color Buffer 中。
+
+**需要特别注意的是：由于透视投影的存在，顶点属性在屏幕空间中并不是线性的，因此在插值时需要进行透视矫正（Perspective Correction）。**
+关于透视矫正插值推导可以参考：[【重心坐标插值、透视矫正插值】原理以及用法见解](https://zhuanlan.zhihu.com/p/144856895)。
+
+重心坐标：重心坐标（Barycentric Coordinates）是一种用于描述三角形内点位置的坐标系。它的核心思想是将三角形内的任意一点表示为三个顶点的加权平均，其中每个顶点的权重由该点到另外两个顶点所形成的三角形面积比例决定。
+
+具体推导可以参考: [重心坐标理论及数学推导](https://zhuanlan.zhihu.com/p/538468807)
+
+**实现：**
+
+这里给出了两种计算重心坐标的方法，第一种比较高效，第二种比较容易理解。
+
+```csharp
+private void RasterizeTriangle(VertexOutput vertex0, VertexOutput vertex1, VertexOutput vertex2, LcLShader shader)
+{
+    var position0 = TransformTool.ClipPositionToScreenPosition(vertex0.positionCS, m_Camera, out var ndcPos0);
+    var position1 = TransformTool.ClipPositionToScreenPosition(vertex1.positionCS, m_Camera, out var ndcPos1);
+    var position2 = TransformTool.ClipPositionToScreenPosition(vertex2.positionCS, m_Camera, out var ndcPos2);
+
+    if (IsCull(ndcPos0, ndcPos1, ndcPos2, shader.CullMode)) return;
+
+    // 计算三角形的边界框
+    int2 bboxMin = (int2)min(position0.xy, min(position1.xy, position2.xy));
+    int2 bboxMax = (int2)max(position0.xy, max(position1.xy, position2.xy));
+
+    // 遍历边界框内的每个像素
+    for (int y = bboxMin.y; y <= bboxMax.y; y++)
+    {
+        for (int x = bboxMin.x; x <= bboxMax.x; x++)
+        {
+            // 计算像素的重心坐标
+            float3 barycentric = TransformTool.BarycentricCoordinate(float2(x, y), position0.xy, position1.xy, position2.xy);
+            // float3 barycentric = TransformTool.BarycentricCoordinate2(float2(x, y), position0.xyz, position1.xyz, position2.xyz);
+            // 如果像素在三角形内，则绘制该像素(NegativeInfinity避免误差)
+            if (barycentric.x >= NegativeInfinity && barycentric.y >= NegativeInfinity && barycentric.z >= NegativeInfinity)
+            {
+                /// ================================ 透视矫正 ================================
+                // 推导公式:https://blog.csdn.net/Motarookie/article/details/124284471
+                // z是当前像素在摄像机空间中的深度值。
+                // 插值校正系数
+                float z = 1 / (barycentric.x / position0.w + barycentric.y / position1.w + barycentric.z / position2.w);
+
+
+                /// ================================ 当前像素的深度插值 ================================
+                float depth = barycentric.x * position0.z + barycentric.y * position1.z + barycentric.z * position2.z;
+
+                var depthBuffer = m_FrameBuffer.GetDepth(x, y);
+                // 深度测试
+                if (Utility.DepthTest(depth, depthBuffer, shader.ZTest))
+                {
+                    // 进行透视矫正
+                    barycentric = barycentric / float3(position0.w, position1.w, position2.w) * z;
+                    // 插值顶点属性
+                    var lerpVertex = InterpolateVertexOutputs(vertex0, vertex1, vertex2, barycentric);
+
+                    var isDiscard = shader.Fragment(lerpVertex, out float4 color);
+                    if (!isDiscard)
+                    {
+                        color = Utility.BlendColors(color, m_FrameBuffer.GetColor(x, y), shader.BlendMode);
+                        m_FrameBuffer.SetColor(x, y, color);
+                        if (shader.ZWrite == ZWrite.On)
+                            m_FrameBuffer.SetDepth(x, y, depth);
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// <summary>
+/// 高效的重心坐标算法
+/// (https://github.com/ssloy/tinyrenderer/wiki/Lesson-2:-Triangle-rasterization-and-back-face-culling)
+/// </summary>
+/// <param name="P"></param>
+/// <param name="v0"></param>
+/// <param name="v1"></param>
+/// <param name="v2"></param>
+/// <returns></returns>
+public static float3 BarycentricCoordinate(float2 P, float2 v0, float2 v1, float2 v2)
+{
+    var v2v0 = v2 - v0;
+    var v1v0 = v1 - v0;
+    var v0P = v0 - P;
+    float3 u = cross(float3(v2v0.x, v1v0.x, v0P.x), float3(v2v0.y, v1v0.y, v0P.y));
+    // float3 u = cross(float3(v2.x - v0.x, v1.x - v0.x, v0.x - P.x), float3(v2.y - v0.y, v1.y - v0.y, v0.y - P.y));
+    if (abs(u.z) < 1) return float3(-1, 1, 1);
+    return float3(1 - (u.x + u.y) / u.z, u.y / u.z, u.x / u.z);
+}
+
+/// <summary>
+///  重心坐标(https://zhuanlan.zhihu.com/p/538468807)
+/// </summary>
+/// <param name="p"></param>
+/// <param name="v0"></param>
+/// <param name="v1"></param>
+/// <param name="v2"></param>
+/// <returns></returns>
+public static float3 BarycentricCoordinate2(float2 p, float3 v0, float3 v1, float3 v2)
+{
+    // 计算三角形三个边的向量(左手坐标系，顺时针为正，逆时针为负)
+    float3 v0v1 = new float3(v1.xy - v0.xy, 0);
+    float3 v1v2 = new float3(v2.xy - v1.xy, 0);
+    float3 v2v0 = new float3(v0.xy - v2.xy, 0);
+    // 计算点p到三角形三个顶点的向量
+    float3 v0p = new float3(p - v0.xy, 0);
+    float3 v1p = new float3(p - v1.xy, 0);
+    float3 v2p = new float3(p - v2.xy, 0);
+
+    // 计算三角形的法向量，用来判断三角形的正反面
+    var normal = cross(v2v0, v0v1);
+    // 大三角形面积，这里没有除以2，因为后面计算的时候会相互抵消
+    float area = abs(normal.z);
+    // 方向向量
+    normal = normalize(normal);
+
+    // 计算三角形的面积：
+    // 叉乘可以用来计算两个向量所在平行四边形的面积，因为叉乘的结果是一个向量，
+    // 将这个向量与单位法向量进行点乘，可以得到一个有向的面积。
+    // 小三角形面积
+    // float area0 = dot(cross(v1v2, v1p), normal);
+    // float area1 = dot(cross(v2v0, v2p), normal);
+    // float area2 = dot(cross(v0v1, v0p), normal);
+
+    // 又因为所有的点z都为0，所以z就是向量的模长，也就是面积，所以可以进一步简化为：
+    float area0 = cross(v1v2, v1p).z * normal.z;
+    float area1 = cross(v2v0, v2p).z * normal.z;
+    float area2 = cross(v0v1, v0p).z * normal.z;
+
+
+    return new float3(area0 / area, area1 / area, area2 / area);
+}
+
+/// 插值顶点属性(重心坐标插值)
+private VertexOutput InterpolateVertexOutputs(VertexOutput v0, VertexOutput v1, VertexOutput v2, float3 barycentric)
+{
+
+    var result = (VertexOutput)Activator.CreateInstance(v0.GetType());
+    result.positionCS = barycentric.x * v0.positionCS + barycentric.y * v1.positionCS + barycentric.z * v2.positionCS;
+    result.positionOS = barycentric.x * v0.positionOS + barycentric.y * v1.positionOS + barycentric.z * v2.positionOS;
+    result.normalWS = barycentric.x * v0.normalWS + barycentric.y * v1.normalWS + barycentric.z * v2.normalWS;
+    result.tangent = barycentric.x * v0.tangent + barycentric.y * v1.tangent + barycentric.z * v2.tangent;
+    result.color = barycentric.x * v0.color + barycentric.y * v1.color + barycentric.z * v2.color;
+    result.uv = barycentric.x * v0.uv + barycentric.y * v1.uv + barycentric.z * v2.uv;
+    result.viewDir = barycentric.x * v0.viewDir + barycentric.y * v1.viewDir + barycentric.z * v2.viewDir;
+    return result;
+}
+```
+
+渲染效果：
+
+![1695181874088](image/Blog/1695181874088.png)
+
+对了，还差贴图，贴图采样的话就不细说了，非常简单。
+如下：
+
+```csharp
+public static float4 SampleTexture2D(Texture2D texture, float2 uv)
+{
+    if (texture == null)
+    {
+        return 1;
+    }
+    return texture.GetPixel((int)(uv.x * texture.width), (int)(uv.y * texture.height)).ToFloat4();
+}
+```
+
+效果：
+
+![1695182761533](image/Blog/1695182761533.png)
+
+# Reference
+
+- [tinyrenderer](https://github.com/ssloy/tinyrenderer)
