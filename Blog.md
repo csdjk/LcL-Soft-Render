@@ -664,20 +664,239 @@ private VertexOutput InterpolateVertexOutputs(VertexOutput v0, VertexOutput v1, 
 如下：
 
 ```csharp
-public static float4 SampleTexture2D(Texture2D texture, float2 uv)
+public static float4 SampleTexture2D(Texture2D texture, float2 uv, WrapMode wrapMode = WrapMode.Repeat)
 {
     if (texture == null)
     {
         return 1;
     }
+    switch (wrapMode)
+    {
+        // 超出范围的部分使用边缘像素填充
+        case WrapMode.Clamp:
+            uv = saturate(uv);
+            break;
+        // 超出范围的部分使用重复的方式填充
+        case WrapMode.Repeat:
+            uv = frac(uv);
+            break;
+        // 超出范围的部分使用镜像的方式填充
+        case WrapMode.Mirror:
+            uv = frac(uv);
+            uv = (frac(uv * 0.5f) * 2 - 1) * sign(uv);
+            uv = abs(uv);
+            break;
+        default:
+            break;
+    }
+
     return texture.GetPixel((int)(uv.x * texture.width), (int)(uv.y * texture.height)).ToFloat4();
 }
 ```
 
 效果：
 
-![1695182761533](image/Blog/1695182761533.png)
+未经过透视矫正：
+![1695298799511](image/Blog/1695298799511.png)
 
-# Reference
+经过透视矫正：
+![1695295683168](image/Blog/1695295683168.png)
+
+### 抗锯齿-MSAA
+
+为了搞清楚 MSAA 原理，我在网上看了很多文章，最开始看得迷迷糊糊的，一直搞不太明白 SSAA 和 MSAA 的区别到底在哪里，直到后面亲自手动实现了一遍才明白，他们的最大区别在于：SSAA 的每个**子采样点**都要进行单独的着色，也就是说每个子采样点都要执行一次片元着色器（如果是 4 倍，那么一个像素就有 4 个子采样点，执行 4 次着色），而 MSAA 是每个**每个像素**只进行一次着色，至于子采样点的颜色就从第一个通过覆盖测试和深度测试的子采样点拷贝过来，这样就大大减少了片元着色器的执行次数。
+当然，每个子采样点都会有自己的深度值和模板值，所以需要 4 倍的深度缓冲区和模板缓冲区以及颜色缓冲区。
+
+具体原理可以参考这两篇文章：[msaa-overview](https://mynameismjp.wordpress.com/2012/10/24/msaa-overview/)、[抗锯齿-MSAA 深入](https://zhuanlan.zhihu.com/p/554603218)
+
+实现：
+
+````csharp
+public void RasterizeTriangleMSAA(VertexOutput vertex0, VertexOutput vertex1, VertexOutput vertex2, LcLShader shader, int sampleCount)
+{
+    var position0 = TransformTool.ClipPositionToScreenPosition(vertex0.positionCS, m_Camera, out var ndcPos0);
+    var position1 = TransformTool.ClipPositionToScreenPosition(vertex1.positionCS, m_Camera, out var ndcPos1);
+    var position2 = TransformTool.ClipPositionToScreenPosition(vertex2.positionCS, m_Camera, out var ndcPos2);
+
+    if (IsCull(ndcPos0, ndcPos1, ndcPos2, shader.CullMode)) return;
+
+    // 计算三角形的边界框
+    int2 bboxMin = (int2)min(position0.xy, min(position1.xy, position2.xy));
+    int2 bboxMax = (int2)max(position0.xy, max(position1.xy, position2.xy));
+
+    // 遍历边界框内的每个像素
+    for (int y = bboxMin.y; y <= bboxMax.y; y++)
+    {
+        for (int x = bboxMin.x; x <= bboxMax.x; x++)
+        {
+            float4 color = 0;
+            bool isShaded = false;
+            bool isDiscard = false;
+            // 对每个采样点进行采样
+            for (int i = 0; i < sampleCount; i++)
+            {
+                // 计算采样点的位置
+                float2 samplePos = float2(x, y) + GetSampleOffset(i, sampleCount);
+                // 计算像素的重心坐标
+                float3 barycentric = TransformTool.BarycentricCoordinate(samplePos, position0.xy, position1.xy, position2.xy);
+                // 如果像素在三角形内，则进行采样
+                if (barycentric.x >= NegativeInfinity && barycentric.y >= NegativeInfinity && barycentric.z >= NegativeInfinity)
+                {
+                    // 透视矫正
+                    float z = 1 / (barycentric.x / position0.w + barycentric.y / position1.w + barycentric.z / position2.w);
+                    float depth = barycentric.x * position0.z + barycentric.y * position1.z + barycentric.z * position2.z;
+                    var depthBuffer = m_FrameBuffer.GetDepth(x, y, i);
+                    // 深度测试
+                    if (Utility.DepthTest(depth, depthBuffer, shader.ZTest))
+                    {
+                        barycentric = barycentric / float3(position0.w, position1.w, position2.w) * z;
+                        // 插值顶点属性
+                        var lerpVertex = InterpolateVertexOutputs(vertex0, vertex1, vertex2, barycentric);
+                        // 每个像素只进行一次片段着色
+                        if (!isShaded)
+                        {
+                            isDiscard = shader.Fragment(lerpVertex, out float4 fragmentColor);
+                            var blendColor = Utility.BlendColors(fragmentColor, m_FrameBuffer.GetColor(x, y, i), shader.BlendMode);
+
+                            isShaded = true;
+                            color = blendColor;
+                        }
+                        if (!isDiscard)
+                        {
+                            m_FrameBuffer.SetColor(x, y, color, i, true);
+                            if (shader.ZWrite == ZWrite.On)
+                                m_FrameBuffer.SetDepth(x, y, depth, i, true);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+/// 获取采样点的偏移量
+private float2 GetSampleOffset(int index, int sampleCount)
+{
+    return float2(0.5 + index) / sampleCount;
+}
+```
+
+## Reference
 
 - [tinyrenderer](https://github.com/ssloy/tinyrenderer)
+````
+
+效果：
+
+没有开MSAA：
+![1695295683168](image/Blog/1695295683168.png)
+
+4倍MSAA：
+![1695298933223](image/Blog/1695298933223.png)
+
+### 绘制Sky
+
+关于Cube Map的可以参考：[Cube Mapping](https://en.wikipedia.org/wiki/Cube_mapping)、[es_full_spec_2](https://www.khronos.org/registry/OpenGL/specs/es/2.0/es_full_spec_2.0.pdf)的3.7.5小节
+
+这里直接贴出代码：
+
+```csharp
+public static Texture2D SelectCubeMapFace(SkyboxImages cubeMap, float3 direction, out float2 uv)
+{
+    float abs_x = abs(direction.x);
+    float abs_y = abs(direction.y);
+    float abs_z = abs(direction.z);
+    float ma, sc, tc;
+    Texture2D faceTexture;
+
+    if (abs_x > abs_y && abs_x > abs_z)
+    {
+        // major axis -> x
+        ma = abs_x;
+        if (direction.x > 0)
+        {
+            // positive x
+            faceTexture = cubeMap.left;
+            sc = -direction.z;
+            tc = -direction.y;
+        }
+        else
+        {
+            // negative x
+            faceTexture = cubeMap.right;
+            sc = +direction.z;
+            tc = -direction.y;
+        }
+    }
+    else if (abs_y > abs_z)
+    {
+        // major axis -> y
+        ma = abs_y;
+        if (direction.y > 0)
+        {
+            // positive y
+            faceTexture = cubeMap.up;
+            sc = +direction.x;
+            tc = +direction.z;
+        }
+        else
+        {
+            // negative y
+            faceTexture = cubeMap.down;
+            sc = +direction.x;
+            tc = -direction.z;
+        }
+    }
+    else
+    {
+        // major axis -> z
+        ma = abs_z;
+        if (direction.z > 0)
+        {
+            // positive z
+            faceTexture = cubeMap.front;
+            sc = +direction.x;
+            tc = -direction.y;
+        }
+        else
+        {
+            // negative z
+            faceTexture = cubeMap.back;
+            sc = -direction.x;
+            tc = -direction.y;
+        }
+    }
+
+    uv = new float2((sc / ma + 1) / 2, (tc / ma + 1) / 2);
+    return faceTexture;
+}
+```
+
+效果：
+
+![1695300172333](image/Blog/1695300172333.png)
+
+Alpha Blend：
+
+![1695301640399](image/Blog/1695301640399.png)
+
+BlinnPhong：
+
+![1695301771786](image/Blog/1695301771786.png)
+
+至此，一个简单的软光栅化就基本完成了，当然还有很多都没有实现，比如：阴影、IBL等等，这些后面应该也不会实现了，因为这个项目只是为了学习软光栅化的原理，所以就不再继续深入了。
+
+并且我也用ComputeShader实现了一遍，顺便熟悉和学习一下ComputeShader，用到的算法都是一样的。
+但是效率上要比CPU高很多，特别是很多个小三角形的时候。
+
+## 参考资料
+
+[GAMES101](https://www.bilibili.com/video/BV1X7411F744/?vd_source=da75eefa9aa7b3d6e3c03ef8cebd42c3)
+[https://github.com/happyfire/URasterizer](https://github.com/happyfire/URasterizer)
+[https://github.com/Litmin/SoftRenderer-Unity](https://github.com/Litmin/SoftRenderer-Unity)
+[https://github.com/ssloy/tinyrenderer](https://github.com/ssloy/tinyrenderer)
+[Cube Mapping](https://en.wikipedia.org/wiki/Cube_mapping)
+[msaa-overview](https://mynameismjp.wordpress.com/2012/10/24/msaa-overview/)
+[抗锯齿-MSAA 深入](https://zhuanlan.zhihu.com/p/554603218)
+[es_full_spec_2](https://www.khronos.org/registry/OpenGL/specs/es/2.0/es_full_spec_2.0.pdf)
+[重心坐标理论及数学推导](https://zhuanlan.zhihu.com/p/538468807)
+[【重心坐标插值、透视矫正插值】原理以及用法见解](https://zhuanlan.zhihu.com/p/144856895)

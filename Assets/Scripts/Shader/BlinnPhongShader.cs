@@ -12,7 +12,7 @@ namespace LcLSoftRenderer
         /// ================================ Shader 属性 ================================
         public float intensity = 1.0f;
         public Color specularColor = Color.white;
-        public float power = 1.0f;
+        public float power = 10.0f;
 
         /// <summary>
         /// 顶点着色器输出

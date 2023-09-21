@@ -59,6 +59,14 @@ namespace LcLSoftRenderer
         Back
     }
 
+    public enum WrapMode
+    {
+        Repeat,
+        Clamp,
+        Mirror
+    }
+
+
     public enum BlendMode
     {
         None,                   // 不进行混合

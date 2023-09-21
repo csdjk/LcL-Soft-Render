@@ -10,38 +10,42 @@ namespace LcLSoftRenderer
 
     public static class Utility
     {
-        public static float4 SampleTexture2D(Texture2D texture, float2 uv)
+        /// <summary>
+        ///  采样纹理
+        /// </summary>
+        /// <param name="texture"></param>
+        /// <param name="uv"></param>
+        /// <param name="wrapMode"></param>
+        /// <returns></returns>
+        public static float4 SampleTexture2D(Texture2D texture, float2 uv, WrapMode wrapMode = WrapMode.Repeat)
         {
             if (texture == null)
             {
                 return 1;
             }
+            switch (wrapMode)
+            {
+                // 超出范围的部分使用边缘像素填充
+                case WrapMode.Clamp:
+                    uv = saturate(uv);
+                    break;
+                // 超出范围的部分使用重复的方式填充
+                case WrapMode.Repeat:
+                    uv = frac(uv);
+                    break;
+                // 超出范围的部分使用镜像的方式填充
+                case WrapMode.Mirror:
+                    uv = frac(uv);
+                    uv = (frac(uv * 0.5f) * 2 - 1) * sign(uv);
+                    uv = abs(uv);
+                    break;
+                default:
+                    break;
+            }
+
             return texture.GetPixel((int)(uv.x * texture.width), (int)(uv.y * texture.height)).ToFloat4();
         }
 
-        /// <summary>
-        /// 采样纹理，超出范围的部分使用重复的方式填充
-        /// </summary>
-        /// <param name="texture"></param>
-        /// <param name="uv"></param>
-        /// <returns></returns>
-        public static float4 RepeatSampleTexture2D(Texture2D texture, float2 uv)
-        {
-
-            float2 repeatCoord = uv - floor(uv);
-            return SampleTexture2D(texture, repeatCoord);
-        }
-        /// <summary>
-        /// 采样纹理，超出范围的部分使用边缘像素填充
-        /// </summary>
-        /// <param name="texture"></param>
-        /// <param name="uv"></param>
-        /// <returns></returns>
-        public static float4 ClampSampleTexture2D(Texture2D texture, float2 uv)
-        {
-            float2 clampedCoord = saturate(uv);
-            return SampleTexture2D(texture, clampedCoord);
-        }
         /// <summary>
         /// 计算天空盒的面以及uv坐标
         /// https://en.wikipedia.org/wiki/Cube_mapping
@@ -131,12 +135,12 @@ namespace LcLSoftRenderer
         /// <param name="texture"></param>
         /// <param name="direction"></param>
         /// <returns></returns>
-        public static float4 SampleCubemap(SkyboxImages texture, float3 direction)
+        public static float4 SampleCubemap(SkyboxImages texture, float3 direction, WrapMode wrapMode = WrapMode.Repeat)
         {
             float2 uv;
             Texture2D faceTexture = SelectCubeMapFace(texture, direction, out uv);
             uv.y = 1 - uv.y;
-            return RepeatSampleTexture2D(faceTexture, uv);
+            return SampleTexture2D(faceTexture, uv, wrapMode);
         }
 
 
