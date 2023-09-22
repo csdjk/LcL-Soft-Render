@@ -16,24 +16,24 @@
 1. 为了更好的符合图形编程的习惯，这里引入了 Mathematics 库，方便后面的运算中使用 float4、float4x4 等数据类型和“.xyz”等语法。![1695127817665](image/Blog/1695127817665.png)
 2. 由于需要读取模型和贴图数据，所以需要开启模型和贴图的读写，这里就简单编写了一个资源导入脚本，导入资源的时候会自动开启读写功能。
 
-   ```csharp
-   using UnityEditor;
-   using UnityEngine;
-   public class LcLAssetPostprocessor : AssetPostprocessor
-   {
-       void OnPreprocessModel()
-       {
-           var importer = assetImporter as ModelImporter;
-           importer.isReadable = true;
-       }
+```csharp
+using UnityEditor;
+using UnityEngine;
+public class LcLAssetPostprocessor : AssetPostprocessor
+{
+    void OnPreprocessModel()
+    {
+        var importer = assetImporter as ModelImporter;
+        importer.isReadable = true;
+    }
 
-       void OnPreprocessTexture()
-       {
-           var importer = assetImporter as TextureImporter;
-           importer.isReadable = true;
-       }
-   }
-   ```
+    void OnPreprocessTexture()
+    {
+        var importer = assetImporter as TextureImporter;
+        importer.isReadable = true;
+    }
+}
+```
 
 ## 实现
 
@@ -795,6 +795,14 @@ private float2 GetSampleOffset(int index, int sampleCount)
 
 ### 绘制Sky
 
+在原点处放一个球体，然后把挂上RenderObject脚本，Shader选择SkyboxShader，贴上天空盒的六张图片，就可以了。
+
+![1695349535696](image/Blog/1695349535696.png)
+
+对了，还有一点忘记说了，绘制物体的时候要注意一下顺序的问题，这里我是最先绘制Sky，然后再绘制不透明物体，最后绘制透明物体，绘制不透明物体的时候由近到远绘制，绘制透明物体的时候由远到近绘制，保证Alpha Blend的效果正确。
+
+但是Unity是先绘制不透明物体，然后再绘制Sky，最后绘制透明物体。应该是为了提高效率，减少overdraw。
+
 关于Cube Map的可以参考：[Cube Mapping](https://en.wikipedia.org/wiki/Cube_mapping)、[es_full_spec_2](https://www.khronos.org/registry/OpenGL/specs/es/2.0/es_full_spec_2.0.pdf)的3.7.5小节
 
 这里直接贴出代码：
@@ -886,14 +894,14 @@ BlinnPhong：
 至此，一个简单的软光栅化就基本完成了，当然还有很多都没有实现，比如：阴影、IBL等等，这些后面应该也不会实现了，因为这个项目只是为了学习软光栅化的原理，所以就不再继续深入了。
 
 并且我也用ComputeShader实现了一遍，顺便熟悉和学习一下ComputeShader，用到的算法都是一样的。
-但是效率上要比CPU高很多，特别是很多个小三角形的时候。
+但是效率上要比CPU高很多，特别是很多个小三角形的时候。源码放Github上了，这里就不细说了。
 
 ## 参考资料
 
 [GAMES101](https://www.bilibili.com/video/BV1X7411F744/?vd_source=da75eefa9aa7b3d6e3c03ef8cebd42c3)
 [https://github.com/happyfire/URasterizer](https://github.com/happyfire/URasterizer)
 [https://github.com/Litmin/SoftRenderer-Unity](https://github.com/Litmin/SoftRenderer-Unity)
-[https://github.com/ssloy/tinyrenderer](https://github.com/ssloy/tinyrenderer)
+[https://github.com/ssloy/tinyrenderer](https://github.com/ssloy/tinyrenderer/wiki)
 [Cube Mapping](https://en.wikipedia.org/wiki/Cube_mapping)
 [msaa-overview](https://mynameismjp.wordpress.com/2012/10/24/msaa-overview/)
 [抗锯齿-MSAA 深入](https://zhuanlan.zhihu.com/p/554603218)

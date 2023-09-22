@@ -12,6 +12,7 @@ namespace LcLSoftRenderer
         public SkyboxShader()
         {
             RenderQueue = RenderQueue.Background;
+            CullMode = CullMode.None;
         }
 
         /// ================================ Shader 属性 ================================
